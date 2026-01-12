@@ -22,7 +22,7 @@ VRChatやってます。
   
 ## リンク  
   
-- [Kernel](./KernelIndex)
+- [Kernel（人生哲学）](./KernelIndex)
 - [GitHubリポジトリ](https://github.com/NonnaNorthmarine?tab=repositories)
 - [Instagram](https://www.instagram.com/nonnanorthmarine/)
 - [Threads](https://www.threads.net/@nonnanorthmarine)
