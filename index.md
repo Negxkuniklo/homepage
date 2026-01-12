@@ -1,6 +1,6 @@
 # ようこそ！  
   
-ここはNonna Northmarineのホームページです。  
+ここはNonna Northmarine（のんな・のーすまりん）のホームページです。  
   
 ## 更新情報  
 
