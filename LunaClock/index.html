@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LunaClock - Nonna Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").then(() => console.log("Service Worker Registered"));
+      }
+    </script>
+  </head>
+  <body>
+    <div class="luna-widget">
+      <div class="moon-container">
+        <svg id="moon-visual" viewBox="0 0 100 100" class="moon-svg">
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="#1a1a1a"
+            stroke="#800080"
+            stroke-width="1"
+          />
+          <!-- Dynamic moon path will be inserted here -->
+          <path id="moon-phase" d="" fill="#e0e0e0" />
+        </svg>
+        <div id="moon-label" class="moon-label">Start...</div>
+      </div>
+
+      <div class="time-container">
+        <div id="luna-time" class="luna-time">00:00:00</div>
+        <div id="luna-date" class="luna-date">AH 1447/01/01</div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
