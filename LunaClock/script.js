@@ -5,7 +5,8 @@
 
 // Configuration
 const LEAP_YEARS = [2, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29]; // 1-based indices in 30-year cycle
-const ISLAMIC_EPOCH_JD = 1948438.5; // Adjusted to Thursday Epoch (July 15, 622) to align with User's Full Moon
+const ISLAMIC_EPOCH_JD = 1507901.25; // 585 BC May 29 (Adjusted +1 Day to align Full Moon)
+// Note: May 28 18:00 was 1507900.25. Adjusted to align "Full Moon = Day 15".
 const CYCLE_DAYS = 10631; // 30 years * 354 + 11 leap days
 
 class LunaClock {

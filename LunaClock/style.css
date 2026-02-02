@@ -1,13 +1,17 @@
 :root {
-  --color-bg: #000000;
-  --color-accent: #800080;
+  --color-bg: #050505;
+  --color-accent: #9b30ff; /* Deep glowing purple */
+  --color-accent-dim: rgba(155, 48, 255, 0.3);
   --color-text: #e0e0e0;
+  --color-text-glow: #ffffff;
   --font-main: "Noto Serif JP", serif;
+  --glass-bg: rgba(10, 5, 15, 0.65);
+  --glass-border: rgba(155, 48, 255, 0.4);
 }
 
 body {
-  background-color: transparent; /* For transparency if finding a way to make window transparent */
-  background-image: linear-gradient(135deg, #050505 0%, #1a001a 100%);
+  background-color: transparent;
+  background-image: radial-gradient(circle at center, #1a0520 0%, #000000 100%);
   color: var(--color-text);
   font-family: var(--font-main);
   display: flex;
@@ -19,44 +23,72 @@ body {
 }
 
 .luna-widget {
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid var(--color-accent);
-  border-radius: 15px;
-  padding: 20px;
-  width: 300px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 30px;
+  width: 320px;
   text-align: center;
   box-shadow:
-    0 0 15px rgba(128, 0, 128, 0.5),
-    inset 0 0 50px rgba(20, 0, 20, 0.8);
-  backdrop-filter: blur(10px);
+    0 0 20px rgba(0, 0, 0, 0.8),
+    inset 0 0 20px rgba(155, 48, 255, 0.1),
+    0 0 15px rgba(155, 48, 255, 0.2);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
   position: relative;
   overflow: hidden;
+  transition: box-shadow 0.3s ease;
 }
 
-/* Decorative Gothic Elements */
+/* Decorative Gothic Corners */
 .luna-widget::before,
 .luna-widget::after {
   content: "";
   position: absolute;
-  width: 100px;
-  height: 100px;
-  border: 1px solid rgba(128, 0, 128, 0.3);
-  transform: rotate(45deg);
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--color-accent);
   z-index: -1;
+  transition: all 0.5s ease;
+  opacity: 0.7;
 }
 
+/* Top-Left & Bottom-Right style */
 .luna-widget::before {
-  top: -50px;
-  left: -50px;
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 10px 0 0 0;
 }
 
 .luna-widget::after {
-  bottom: -50px;
-  right: -50px;
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 10px 0;
+}
+
+/* Extra decorative elements for "Jirai" feel - Crosses */
+.luna-widget .deco-cross {
+  position: absolute;
+  color: var(--color-accent);
+  font-size: 1.2rem;
+  opacity: 0.5;
+  user-select: none;
+}
+.deco-top-right {
+  top: 15px;
+  right: 15px;
+}
+.deco-bottom-left {
+  bottom: 15px;
+  left: 15px;
 }
 
 .moon-container {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   position: relative;
   height: 120px;
   display: flex;
@@ -66,55 +98,72 @@ body {
 }
 
 .moon-svg {
-  width: 100px;
-  height: 100px;
-  filter: drop-shadow(0 0 10px #ffffffaa);
+  width: 110px;
+  height: 110px;
+  filter: drop-shadow(0 0 12px var(--color-accent));
 }
 
 .moon-label {
-  margin-top: 5px;
-  font-size: 0.9rem;
+  margin-top: 10px;
+  font-size: 0.85rem;
   color: var(--color-accent);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  text-shadow: 0 0 5px var(--color-accent);
 }
 
 .time-container {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
 }
 
 .luna-time {
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   font-weight: 700;
   line-height: 1;
-  text-shadow: 0 0 10px rgba(128, 0, 128, 0.8);
+  color: var(--color-text-glow);
+  text-shadow:
+    0 0 10px var(--color-accent),
+    0 0 20px var(--color-accent);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
 }
 
 .luna-date {
-  font-size: 1.2rem;
-  color: #a0a0a0;
-  padding-top: 5px;
-  border-top: 1px solid var(--color-accent);
+  font-size: 1.1rem;
+  color: #ccc;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-accent-dim);
   margin-top: 5px;
+  letter-spacing: 0.1em;
 }
 
-/* Day Switch Animation */
-@keyframes flash {
+/* Day Switch Animation: Purple Pulse */
+@keyframes pulse-gothic {
   0% {
-    box-shadow: 0 0 15px rgba(128, 0, 128, 0.5);
+    box-shadow:
+      0 0 20px rgba(0, 0, 0, 0.8),
+      inset 0 0 20px rgba(155, 48, 255, 0.1),
+      0 0 15px rgba(155, 48, 255, 0.2);
+    border-color: var(--glass-border);
   }
   50% {
-    box-shadow: 0 0 50px rgba(128, 0, 128, 1);
-    background-color: rgba(20, 0, 20, 0.9);
+    box-shadow:
+      0 0 60px rgba(155, 48, 255, 0.8),
+      inset 0 0 40px rgba(155, 48, 255, 0.5),
+      0 0 30px rgba(155, 48, 255, 0.6);
+    border-color: #d896ff;
   }
   100% {
-    box-shadow: 0 0 15px rgba(128, 0, 128, 0.5);
+    box-shadow:
+      0 0 20px rgba(0, 0, 0, 0.8),
+      inset 0 0 20px rgba(155, 48, 255, 0.1),
+      0 0 15px rgba(155, 48, 255, 0.2);
+    border-color: var(--glass-border);
   }
 }
 
 .flash-effect {
-  animation: flash 1s ease-out;
+  animation: pulse-gothic 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -2,8 +2,10 @@
 // Test Script for LunaClock Logic
 
 const LEAP_YEARS = [2, 5, 7, 10, 13, 16, 18, 21, 24, 26, 29];
-const ISLAMIC_EPOCH_JD = 1948439.5; 
+const ISLAMIC_EPOCH_JD = 1507901.25; 
 const CYCLE_DAYS = 10631; 
+
+// ...
 
 function getJD(date) {
     return (date.getTime() / 86400000) + 2440587.5;
@@ -50,10 +52,13 @@ function test(dateStr) {
 }
 
 console.log("--- Testing Known Dates ---");
-// Epoch: July 16, 622 -> Should be 1/1/1
-test("622-07-16T12:00:00Z"); 
+// Epoch: 585 BC May 28 -> Should be 1/1/1
+// Julian -584 May 28 18:00
+// Test a date just after epoch
+test("-000584-05-28T20:00:00+09:00"); 
 
 // Today: 2026-02-02
+// Based on 585 BC Epoch, this should be around Year 2690
 test("2026-02-02T12:00:00+09:00"); 
 
 console.log("\n--- Testing 18:00 Switch Logic ---");
