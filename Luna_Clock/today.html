@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUNA CLOCK - Moon Phase & Custom Time</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;500&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Astronomy Engine Library -->
+    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #050510;
+        --text-color: #e0e0e0;
+        --accent-color: #a8b0d0;
+        --moon-glow: rgba(200, 210, 255, 0.2);
+        --font-main: "Cinzel", serif;
+        --font-jp: "Noto Serif JP", serif;
+      }
+
+      * {
+        box-sizing: border-sizing;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: var(--font-jp);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto; /* Allow scrolling */
+        background: radial-gradient(circle at center, #1a1a2e 0%, #050510 80%);
+      }
+
+      .container {
+        text-align: center;
+        width: 90%;
+        max-width: 600px;
+        padding: 2rem;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        font-family: var(--font-main);
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.2em;
+        color: var(--accent-color);
+        text-shadow: 0 0 10px var(--moon-glow);
+      }
+
+      .moon-container {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        margin: 2rem auto;
+        filter: drop-shadow(0 0 15px var(--moon-glow));
+      }
+
+      /* SVG Moon Styling */
+      #moon-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .moon-info {
+        margin-bottom: 2rem;
+      }
+
+      .moon-age-number {
+        font-family: var(--font-main);
+        font-size: 1.2rem;
+        color: #8899aa;
+      }
+
+      .time-display {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .custom-date {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.1em;
+      }
+
+      .custom-time {
+        font-family: var(--font-main);
+        font-size: 3rem;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(168, 176, 208, 0.3);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .moon-day-count {
+        font-size: 1.1rem;
+        color: var(--accent-color);
+        margin-top: 0.5rem;
+      }
+
+      .next-moon-info {
+        font-size: 0.9rem;
+        color: #667788;
+        margin-top: 2rem;
+        line-height: 1.6;
+      }
+
+      .label {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        opacity: 0.7;
+        margin-bottom: 0.2rem;
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 1.5rem;
+        }
+        .container {
+          padding: 1rem;
+        }
+        .moon-container {
+          width: 150px;
+          height: 150px;
+        }
+        .custom-time {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+        <h1>LUNA CLOCK</h1>
+
+        <div class="moon-container">
+            <!-- Simple SVG representation that will be updated by JS -->
+            <svg id="moon-svg" viewBox="0 0 100 100">
+                <!-- Background: Dark Moon -->
+                <circle cx="50" cy="50" r="48" fill="#151520" stroke="none"></circle>
+                <!-- Path: Illuminated Part -->
+                <path id="moon-phase-path" d="" fill="#e0e0e0" filter="url(#glow)"></path>
+                <!-- Filter for Glow -->
+                <defs>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+            </svg>
+        </div>
+
+        <div class="moon-info">
+            <span class="label">Current Moon Age</span>
+            <div class="moon-age-number" id="moon-age-num">--</div>
+        </div>
+
+        <div class="time-display">
+            <!-- Removed Standard Date ID custom-date-text as requested -->
+            <div class="custom-time" id="custom-time-text">00:00:00</div>
+            <div class="moon-day-count" id="moon-day-count">--</div>
+        </div>
+
+        <div class="next-moon-info">
+            <span class="label">Next Full Moon</span>
+            <div id="next-full-moon-date">--</div>
+            <div id="next-full-moon-age">--</div>
+        </div>
+
+        <!-- Navigation Link -->
+        <div style="margin-top: 2rem;">
+            <a href="month.html" style="color: var(--accent-color); text-decoration: none; border: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; transition: background 0.3s;">
+                View Lunar Calendar
+            </a>
+        </div>
+        
+        <!-- Debug info (hidden primarily, visible if error) -->
+        <div id="debug-info" style="color: red; font-size: 0.8rem; margin-top: 10px; display: none;"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const DAY_START_HOUR = 18;
+
+        /**
+         * Calculate custom date based on 18:00 boundary
+         * @param {Date} date - The actual date object
+         * @returns {Date} - The "Custom Date" (time normalized to 00:00)
+         */
+        function getCustomDate(date) {
+            const d = new Date(date);
+            if (d.getHours() >= DAY_START_HOUR) {
+                d.setDate(d.getDate() + 1);
+            }
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        /**
+         * Format relative time since 18:00
+         */
+        function getCustomTimeStr(date) {
+            const now = new Date(date);
+            let baseTime = new Date(date);
+            
+            if (now.getHours() >= DAY_START_HOUR) {
+                baseTime.setHours(DAY_START_HOUR, 0, 0, 0);
+            } else {
+                baseTime.setDate(baseTime.getDate() - 1);
+                baseTime.setHours(DAY_START_HOUR, 0, 0, 0);
+            }
+
+            const diff = now - baseTime;
+            const hours = Math.floor(diff / 3600000);
+            const mins = Math.floor((diff % 3600000) / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            try {
+                if (typeof Astronomy === 'undefined') {
+                    throw new Error("Astronomy library not loaded.");
+                }
+
+                const now = new Date(); // System time
+                
+                // 1. Custom Time & Date
+                const customDate = getCustomDate(now);
+                const timeStr = getCustomTimeStr(now);
+                
+                // Removed standard date display
+                document.getElementById('custom-time-text').textContent = timeStr;
+
+                // 2. Astronomy Calculations
+                // Get previous New Moon (Phase 0)
+                const prevNewMoon = Astronomy.SearchMoonPhase(0, now, -40); 
+                
+                if (!prevNewMoon) {
+                    throw new Error("Could not find previous new moon.");
+                }
+
+                // Debug: Check what prevNewMoon.date actually is
+                // console.log("PrevNewMoon Date:", prevNewMoon.date);
+
+                const dateNowObj = Astronomy.MakeTime(now);
+                let prevNMTime = prevNewMoon.date; 
+
+                // Robustness: Ensure we have the .tt property
+                if (typeof prevNMTime.tt === 'undefined') {
+                    // Try to convert if it's a standard Date
+                    if (prevNMTime instanceof Date) {
+                         prevNMTime = Astronomy.MakeTime(prevNMTime);
+                    } else {
+                        // Fallback: maybe the library version returns different structure?
+                        // Try logging to debug
+                        console.warn("Unexpected format for prevNMTime", prevNMTime);
+                    }
+                }
+                
+                // ageDays = Current Time - Previous New Moon Time (in days)
+                const ageDays = dateNowObj.tt - prevNMTime.tt;
+                
+                // Safety check
+                if (isNaN(ageDays)) {
+                    // Detailed error for debugging
+                    throw new Error(`Calculated age is NaN. Now.tt=${dateNowObj.tt}, Prev.tt=${prevNMTime.tt}`);
+                }
+
+                document.getElementById('moon-age-num').textContent = ageDays.toFixed(1);
+
+                // 3. Moon Age Date (Day X)
+                // Definition: Day 1 starts on the Custom Date containing the New Moon.
+                // We need a JS Date object for getCustomDate. 
+                // Astronomy.Time has .date property which is JS Date.
+                let nmDateJS = prevNMTime.date; 
+                if (!nmDateJS || !(nmDateJS instanceof Date)) {
+                    // If .date property is missing or not a Date, try to convert from .tt
+                    // Astronomy.Time object usually has .date.
+                    // If prevNMTime was created by MakeTime, it has it.
+                    if (prevNMTime.tt) {
+                         // Convert TT back to Date? Astronomy doesn't have direct simple helper in minimal docs?
+                         // Actually prevNewMoon.date from SearchMoonPhase SHOULD be a Time object which has .date.
+                         // Only if we manually converted it might it be lost.
+                         // Let's assume it's there or use 'now' as fallback to prevent crash? No.
+                    }
+                }
+                
+                const nmCustomDate = getCustomDate(nmDateJS);
+                
+                // Difference in days between custom dates
+                const diffTime = customDate.getTime() - nmCustomDate.getTime();
+                const dayCount = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 because start is Day 1
+                
+                if (isNaN(dayCount)) {
+                     throw new Error(`Day Count is NaN. CustomDate=${customDate}, NMCustomDate=${nmCustomDate}`);
+                }
+
+                document.getElementById('moon-day-count').textContent = `月齢日付: ${dayCount}日目`;
+
+                // 4. Next Full Moon (Phase 180)
+                const nextFullMoon = Astronomy.SearchMoonPhase(180, now, 40);
+                if (nextFullMoon) {
+                    let fmTime = nextFullMoon.date;
+                    // Ensure Time object type protection
+                    if (typeof fmTime.tt === 'undefined' && fmTime instanceof Date) {
+                        fmTime = Astronomy.MakeTime(fmTime);
+                    }
+
+                    // Find the New Moon immediately PRECEDING this specific Full Moon
+                    // This ensures we are counting from the correct cycle start
+                    const cycleStartNM = Astronomy.SearchMoonPhase(0, fmTime.date, -30);
+                    
+                    if (cycleStartNM) {
+                        let csTime = cycleStartNM.date;
+                         if (typeof csTime.tt === 'undefined' && csTime instanceof Date) {
+                            csTime = Astronomy.MakeTime(csTime);
+                        }
+                        
+                        const fmDateJS = fmTime.date;
+                        const csDateJS = csTime.date;
+                        
+                        const fmCustomDate = getCustomDate(fmDateJS);
+                        const csCustomDate = getCustomDate(csDateJS);
+                        
+                        // Count days relative to THAT cycle's start
+                        const fmDayCount = Math.floor((fmCustomDate.getTime() - csCustomDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        const fmCustomTimeStr = getCustomTimeStr(fmDateJS);
+                        const fmTimeStr = fmCustomTimeStr.substring(0, 5); // HH:MM
+                        
+                        document.getElementById('next-full-moon-date').textContent = `日時: ${fmDayCount}日目 ${fmTimeStr}`;
+                        
+                        // Age at Full Moon relative to THAT cycle's start
+                        const fmAge = fmTime.tt - csTime.tt;
+                        document.getElementById('next-full-moon-age').textContent = `月齢: ${fmAge.toFixed(1)}`;
+                    }
+                }
+
+                // 5. Render Moon Visual
+                // Use Astronomy.Illumination to get visual phase info
+                // phase_fraction: 0.0 (New) to 1.0 (Full) to 0.0 (New)
+                // phase_angle: angle of the sun-moon vector?
+                // mag: magnitude?
+                // Let's use MoonPhase(date) for ecliptic longitude to determine Waxing/Waning
+                
+                // Astronomy.MoonPhase(date) returns 0..360
+                const phaseLon = Astronomy.MoonPhase(now);
+                drawMoon(phaseLon);
+            
+            } catch (e) {
+                console.error(e);
+                const debugEl = document.getElementById('debug-info');
+                debugEl.style.display = 'block';
+                debugEl.textContent = "Error: " + e.message;
+            }
+        }
+
+        function drawMoon(phaseAngle) {
+            const svg = document.getElementById('moon-phase-path');
+            
+            // phaseAngle: 0=New, 90=First Q, 180=Full, 270=Third Q
+            
+            // Normalize angle
+            let angle = phaseAngle % 360;
+            if (angle < 0) angle += 360;
+
+            const r = 48; 
+            
+            // We want to draw the ILLUMINATED part (Light).
+            // Background is DARK.
+            
+            // Logic:
+            // Terminology:
+            // Limb: The outer circular edge (always a semicircle on the sun-lit side).
+            // Terminator: The inner elliptical edge (shadow boundary).
+            
+            // Waxing (0 < a < 180):
+            // Sun is on the RIGHT (relative to viewer in standard diagramming? Let's assume standard North-up map, Sun moves East?).
+            // Standard Moon Phase icons: Waxing Crescent is Right-side illuminated ) shape.
+            
+            // So for Waxing:
+            // Limb is RIGHT Semicircle. (M 50 2 A 48 48 0 0 1 50 98)
+            // Terminator connects Bottom (50 98) to Top (50 2).
+            
+            // Terminator x-radius 'tr':
+            // varies from 48 (at 0 deg) to -48 (at 180 deg)?
+            // At 0 deg (New): We see 0 light.
+            // If we use Limb (Right Semicircle) + Terminator.
+            // Terminator must hug the Limb.
+            // So Terminator must bulge RIGHT.
+            
+            // If angle=180 (Full), we want Area=Full.
+            // Terminator must bulge LEFT (to encompass the left half).
+            
+            // cos(0) = 1.
+            // cos(180) = -1.
+            
+            // Waxing Logic:
+            // Limb: Right Semicircle.
+            // Terminator Radius: r * cos(angle). 
+            // 0 deg -> 48 (Positive). 
+            // 90 deg -> 0.
+            // 180 deg -> -48 (Negative).
+            
+            // Drawing the Terminator:
+            // Valid SVG arc for terminator from 50,98 to 50,2.
+            // Radius must be positive abs(r * cos(a)).
+            // Sweep flag determines bulge direction.
+            // We want terminator to bulge RIGHT when cos > 0 (New->FirstQ).
+            // We want terminator to bulge LEFT when cos < 0 (FirstQ->Full).
+            
+            // SVG Arc Sweep: 0 or 1.
+            // Arc from Bottom to Top.
+            // Sweep 0 -> Curves to Left?
+            // Sweep 1 -> Curves to Right?
+            // (Assuming clockwise/counter-clockwise logic).
+            // M 50 98 -> 50 2.
+            // Straight line is up.
+            // Sweep 1 (Clockwise) -> Bulge Left.
+            // Sweep 0 (CCW) -> Bulge Right.
+            
+            // So:
+            // If cos > 0 (0-90): We want Bulge Right (Sweep 0).
+            // If cos < 0 (90-180): We want Bulge Left (Sweep 1).
+            
+            // Waning (180 < a < 360):
+            // Sun is on LEFT.
+            // Limb is LEFT Semicircle. (M 50 2 A 48 48 0 0 0 50 98).
+            // Terminator connects Bottom to Top.
+            
+            // cos(180) = -1. 
+            // cos(270) = 0.
+            // cos(360) = 1.
+            
+            // At 180 (Full): Area Full. Terminator Bulges RIGHT (Sweep 0).
+            // At 270 (LastQ): Area Half. Terminator Straight.
+            // At 360 (New): Area Empty. Terminator Bulges LEFT (Sweep 1).
+            
+            // Summary for Waning Terminator Sweep:
+            // cos < 0 (180-270): Bulge Right (Sweep 0).
+            // cos > 0 (270-360): Bulge Left (Sweep 1).
+            
+            
+            let d = "";
+            const rad = angle * (Math.PI / 180);
+            const tr = r * Math.cos(rad); // Terminator radius (signed)
+            const trAbs = Math.abs(tr);
+            
+            if (angle <= 180) {
+                // Waxing: Right Limb
+                // Limb: M 50 2 A 48 48 0 0 1 50 98
+                // Terminator: From 50 98 to 50 2
+                // Sweep: (tr > 0) ? 0 : 1;
+                // tr > 0 means 0-90 deg (Crescent) -> Sweep 0 (Right bulge) => matches Right Limb => Empty? 
+                // Wait.
+                // If Terminator matches Limb, it closes the shape with 0 width. Correct.
+                
+                const sweep = tr > 0 ? 0 : 1;
+                d = `M 50 2 A 48 48 0 0 1 50 98 A ${trAbs} 48 0 0 ${sweep} 50 2`;
+            } else {
+                // Waning: Left Limb
+                // Limb: M 50 2 A 48 48 0 0 0 50 98
+                // Terminator: From 50 98 to 50 2
+                // Sweep?
+                // 180-270 (Gibbous): tr < 0. We want Full-ish.
+                // Left semicircle + bulge to right.
+                // Sweep 0 (Right bulge).
+                
+                // 270-360 (Crescent): tr > 0. We want Crescent.
+                // Left semicircle + scoop from left.
+                // Bulge Left (Sweep 1).
+                
+                const sweep = tr < 0 ? 0 : 1; 
+                d = `M 50 2 A 48 48 0 0 0 50 98 A ${trAbs} 48 0 0 ${sweep} 50 2`;
+            }
+            
+            svg.setAttribute('d', d);
+        }
+
+        // Init
+        // Run update initially and then interval
+        updateDisplay();
+        setInterval(updateDisplay, 1000);
+    </script>
+</body>
+</html>

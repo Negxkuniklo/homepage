@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUNA CLOCK - Monthly Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #050510;
+            --text-color: #e0e0e0;
+            --accent-color: #a8b0d0;
+            --moon-glow: rgba(200, 210, 255, 0.2);
+            --font-main: 'Cinzel', serif;
+            --font-jp: 'Noto Serif JP', serif;
+            --highlight-bg: rgba(168, 176, 208, 0.1);
+            --today-border: #a8b0d0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-jp);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: radial-gradient(circle at top center, #1a1a2e 0%, #050510 80%);
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            font-family: var(--font-main);
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px var(--moon-glow);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: var(--font-jp);
+            transition: all 0.3s;
+        }
+        button:hover { background: rgba(255, 255, 255, 0.15); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .cycle-info {
+            font-size: 0.9rem;
+            color: #8899aa;
+        }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .day-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            min-height: 120px;
+        }
+
+        /* Day Labels */
+        .day-number {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+
+        .moon-visual {
+            width: 50px;
+            height: 50px;
+            margin: 5px 0;
+            flex-grow: 1; /* Allow visual to take available space */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .moon-age-text {
+            font-size: 0.8rem;
+            color: #667788;
+            margin-bottom: 1.5rem; /* Make space for absolute label */
+        }
+
+        /* Status Modifiers */
+        .is-today {
+            box-shadow: 0 0 15px var(--moon-glow);
+            border-color: var(--today-border);
+            background: rgba(20, 30, 60, 0.5);
+        }
+
+        .event-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem; /* Slightly larger */
+            font-weight: bold;
+            padding: 4px 0;
+            background: rgba(5, 5, 20, 0.85); /* More opaque */
+            border-radius: 0 0 10px 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.2;
+            min-height: 2.5em; /* Fixed height for 2 lines */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* Event Info Subtext */
+        .event-age {
+            font-size: 0.65rem;
+            font-weight: normal;
+            opacity: 0.8;
+        }
+
+        /* Phase Specifics */
+        .phase-new { border: 1px solid #444; }
+        .phase-full { border: 1px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+        .phase-quarter { border: 1px solid #a8b0d0; }
+
+        .back-link {
+            margin-top: 3rem;
+            color: #667788;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border 0.3s;
+        }
+        .back-link:hover { border-bottom-color: #667788; }
+
+        /* SVG internal styles */
+        svg circle.bg { fill: #151520; }
+        svg path.lit { fill: #e0e0e0; filter: drop-shadow(0 0 1px white); }
+
+    </style>
+</head>
+<body>
+
+    <h1>LUNAR CALENDAR</h1>
+
+    <div class="controls">
+        <button id="btn-prev" onclick="changeCycle(-1)">&lt; Prev Cycle</button>
+        <span class="cycle-info" id="cycle-label">--</span>
+        <button id="btn-next" onclick="changeCycle(1)">Next Cycle &gt;</button>
+    </div>
+
+    <div class="calendar-grid" id="calendar-root">
+        <!-- Rendered by JS -->
+    </div>
+
+    <a href="today.html" class="back-link">Return to Clock</a>
+
+    <script>
+        const DAY_START_HOUR = 18;
+        let currentCycleOffset = 0; // 0 = Current cycle
+        const MAX_OFFSET = 6;
+
+        /**
+         * Robustly extract JS Date from Astronomy result
+         */
+        function extractDate(obj) {
+            if (!obj) return null;
+            if (obj instanceof Date) return obj;
+            
+            // If it has a .date property
+            if (obj.date) {
+                if (obj.date instanceof Date) return obj.date;
+                // Recursive check (e.g. Wrapper -> Time -> Date)
+                return extractDate(obj.date);
+            }
+            
+            // Fallback: Check if it looks like a Time object but JSONified?
+            if (obj.tt && typeof obj.date === 'string') {
+                 return new Date(obj.date);
+            }
+            
+            return null;
+        }
+
+        /**
+         * Get Custom Date (18:00 boundary change)
+         */
+        function getCustomDate(date) {
+            const d = new Date(date);
+            if (d.getHours() >= DAY_START_HOUR) {
+                d.setDate(d.getDate() + 1);
+            }
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function ensureTimeObj(t) {
+             if (typeof t.tt === 'undefined' && t instanceof Date) {
+                 return Astronomy.MakeTime(t);
+             }
+             if (t && t.date) return t; // Already a result object? No, Time object.
+             return t; 
+        }
+
+        /**
+         * Main Render Function
+         */
+        function renderCalendar() {
+            try {
+                if (typeof Astronomy === 'undefined') {
+                    throw new Error("Astronomy library not loaded.");
+                }
+
+                const now = new Date();
+                const calendarRoot = document.getElementById('calendar-root');
+                calendarRoot.innerHTML = '';
+
+                // 1. Determine Cycle Start (New Moon)
+                // Search base: current time + (offset * 29.5 days)
+                const searchBaseDate = new Date(now.getTime() + (currentCycleOffset * 29.53 * 24 * 60 * 60 * 1000));
+                
+                // Find nearest New Moon around this time
+                // Search back wide enough (45 days) to ensure we catch the start of the current cycle even if we are at the end of it.
+                // Current cycle start is always in the past relative to now (if offset=0).
+                const cycleStartNM = Astronomy.SearchMoonPhase(0, searchBaseDate, -45); 
+                let startNM = cycleStartNM;
+
+                // Optimization: If we are searching Next Cycle, maybe we need to be careful?
+                // But the offset logic handles the base date.
+                
+                if (!startNM) {
+                    // Try searching forward if backward failed (e.g. very sparse data? shouldn't happen for moon)
+                    startNM = Astronomy.SearchMoonPhase(0, searchBaseDate, 45);
+                    // Note: If we search forward 45 days, we might skip the current cycle if we are in it.
+                    // But if backward returned null, we must be way off.
+                }
+                
+                if (!startNM) {
+                    throw new Error("Could not compute cycle start (SearchMoonPhase returned null).");
+                }
+
+                const startNMDateJS = extractDate(startNM);
+                if (!startNMDateJS) throw new Error("Could not extract Date from startNM: " + JSON.stringify(startNM));
+
+                // 2. Find Cycle End (Next New Moon)
+                // Search for Next New Moon starting 1 day AFTER the current New Moon
+                const searchForwardBase = new Date(startNMDateJS);
+                searchForwardBase.setDate(searchForwardBase.getDate() + 2); 
+                
+                const nextNM = Astronomy.SearchMoonPhase(0, searchForwardBase, 35); 
+                if (!nextNM) {
+                     throw new Error("Could not compute cycle end (Next SearchMoonPhase returned null).");
+                }
+                
+                const nextNMDateJS = extractDate(nextNM);
+                if (!nextNMDateJS) throw new Error("Could not extract Date from nextNM: " + JSON.stringify(nextNM));
+
+                // 3. Define Interval in Custom Dates
+                const startDate = getCustomDate(startNMDateJS);
+                const endDate = getCustomDate(nextNMDateJS); 
+                
+                if (isNaN(startDate.getTime())) throw new Error("Start Date is Invalid");
+                if (isNaN(endDate.getTime())) throw new Error("End Date is Invalid");
+
+                // Update Label
+                const fmt = { month: 'short', day: 'numeric' };
+                const label1 = startDate.toLocaleDateString('ja-JP', fmt);
+                const label2 = endDate.toLocaleDateString('ja-JP', fmt);
+                document.getElementById('cycle-label').textContent = `${label1} - ${label2}`;
+
+                // Update Buttons
+                document.getElementById('btn-prev').disabled = currentCycleOffset <= -MAX_OFFSET;
+                document.getElementById('btn-next').disabled = currentCycleOffset >= MAX_OFFSET;
+
+                // 4. Loop Days
+                let iterDate = new Date(startDate);
+                let dayCount = 1;
+
+                // Pre-calculate Phase Events for this cycle
+                const events = [];
+                [0, 90, 180, 270].forEach(phase => {
+                    // Search starting from startNMDateJS
+                    // Use startNMDateJS because SearchMoonPhase(phase, date) searches for phase >= date.
+                    // If phase 0, it finds startNMDateJS (or very close).
+                    
+                    const evt = Astronomy.SearchMoonPhase(phase, startNMDateJS, 35);
+                    const evtDateJS = extractDate(evt);
+                    
+                    if (evt && evtDateJS) {
+                         if (evtDateJS.getTime() < nextNMDateJS.getTime() + 600000) { // fuzzy epsilon (10 min)
+                            // Calculate Age at this exact moment
+                            const evtTimeObj = Astronomy.MakeTime(evtDateJS);
+                            const startObj = Astronomy.MakeTime(startNMDateJS);
+                            const eventAge = evtTimeObj.tt - startObj.tt;
+                            
+                            events.push({ phase, time: evtDateJS, ageAtEvent: eventAge });
+                        }
+                    }
+                });
+
+                // Safety checks for infinite loop
+                let loopGuard = 0;
+                
+                while (iterDate < endDate) {
+                    loopGuard++;
+                    if(loopGuard > 40) break; // Should not happen
+
+                    // Create Card
+                    const card = document.createElement('div');
+                    card.className = 'day-card';
+
+                    // Mid-point logic for Moon Age: 06:00 AM
+                    const calcTime = new Date(iterDate);
+                    calcTime.setHours(6, 0, 0, 0);
+
+                    // Check if Today
+                    const todayCustom = getCustomDate(now);
+                    if (iterDate.getTime() === todayCustom.getTime()) {
+                        card.classList.add('is-today');
+                    }
+
+                    // Calculate Moon Age
+                    // We need TT for accurate diff. 
+                    // MakeTime creates TT.
+                    const calcTimeObj = Astronomy.MakeTime(calcTime);
+                    const startTimeObj = Astronomy.MakeTime(startNMDateJS);
+                    const age = calcTimeObj.tt - startTimeObj.tt;
+                    
+                    // Render Visual
+                    const phaseLon = Astronomy.MoonPhase(calcTime); 
+                    const svg = createMoonSVG(phaseLon);
+                    
+                    // Events check
+                    const winStart = new Date(iterDate);
+                    winStart.setDate(winStart.getDate() - 1);
+                    winStart.setHours(18, 0, 0, 0);
+                    
+                    const winEnd = new Date(iterDate);
+                    winEnd.setHours(18, 0, 0, 0);
+                    
+                    let eventLabelText = '';
+                    let eventAgeText = '';
+                    let eventClass = '';
+
+                    // Check events
+                    events.forEach(e => {
+                        if (e.time >= winStart && e.time < winEnd) {
+                            if (e.phase === 90) { eventLabelText = 'FIRST Q'; eventClass = 'phase-quarter'; }
+                            if (e.phase === 180) { eventLabelText = 'FULL MOON'; eventClass = 'phase-full'; }
+                            if (e.phase === 270) { eventLabelText = 'THIRD Q'; eventClass = 'phase-quarter'; }
+                            if (e.phase === 0) { eventLabelText = 'NEW MOON'; eventClass = 'phase-new'; }
+                            
+                            // Specific Age
+                            eventAgeText = `Age: ${e.ageAtEvent.toFixed(1)}`;
+                        }
+                    });
+
+                    if (eventClass) card.classList.add(eventClass);
+
+                    // HTML Content
+                    card.innerHTML = `
+                        <div class="day-number">${dayCount}日</div>
+                        <div class="moon-visual">${svg}</div>
+                        <div class="moon-age-text">Age: ${age.toFixed(1)}</div>
+                        ${eventLabelText ? `<div class="event-label">
+                            <div>${eventLabelText}</div>
+                            <div class="event-age">${eventAgeText}</div>
+                        </div>` : ''}
+                    `;
+                    
+                    calendarRoot.appendChild(card);
+
+                    // Next
+                    iterDate.setDate(iterDate.getDate() + 1);
+                    dayCount++;
+                }
+
+            } catch (e) {
+                console.error(e);
+                const msg = e ? (e.message || e.toString()) : "Unknown Error";
+                // alert("Error generating calendar: " + msg);
+                const root = document.getElementById('calendar-root');
+                if(root) root.innerHTML = `<div style="color:red; margin:2rem; text-align:center;">Error generating calendar:<br>${msg}</div>`;
+            }
+        }
+
+        function createMoonSVG(phaseAngle) {
+            // Re-using logic from  today.html (simplified)
+            let angle = phaseAngle % 360;
+            if (angle < 0) angle += 360;
+            const r = 24; // Scaled down
+            const cx = 25;
+            const cy = 25;
+            
+            const rad = angle * (Math.PI / 180);
+            const tr = r * Math.cos(rad);
+            const trAbs = Math.abs(tr);
+            let d = "";
+            
+            if (angle <= 180) {
+                const sweep = tr > 0 ? 0 : 1;
+                d = `M 25 1 A 24 24 0 0 1 25 49 A ${trAbs} 24 0 0 ${sweep} 25 1`;
+            } else {
+                const sweep = tr < 0 ? 0 : 1;
+                d = `M 25 1 A 24 24 0 0 0 25 49 A ${trAbs} 24 0 0 ${sweep} 25 1`;
+            }
+
+            return `<svg viewBox="0 0 50 50">
+                <circle cx="25" cy="25" r="24" class="bg"></circle>
+                <path d="${d}" class="lit"></path>
+            </svg>`;
+        }
+
+        function changeCycle(delta) {
+            currentCycleOffset += delta;
+            renderCalendar();
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', renderCalendar);
+    </script>
+</body>
+</html>
