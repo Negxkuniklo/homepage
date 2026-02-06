@@ -4,7 +4,7 @@
   
 ## 更新情報  
 
-- 20260202: [LunaClock](./LunaClock/index.html)を公開しました。
+- 20260202: [Luna_Clock](./Luna_Clock/today.html)を公開しました。
 - 20251210: 全体の微調整を行いました。
 - 20251203: サイトを開設しました！  
   
@@ -26,7 +26,7 @@ Selenismを信仰しています。
   
 - [Kernel（人生哲学）](./KernelIndex)
 - [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
-- [LunaClock](./LunaClock/index.html)
+- [Luna_Clock](./Luna_Clock/today.html)
 - [Instagram](https://www.instagram.com/nonnanorthmarine/)
 - [Threads](https://www.threads.net/@nonnanorthmarine)
 - [X（旧Twitter）](https://x.com/nonnanorthmarin)
