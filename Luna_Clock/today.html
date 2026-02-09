@@ -183,9 +183,9 @@
         </div>
 
         <div class="next-moon-info">
-            <span class="label">Next Full Moon</span>
-            <div id="next-full-moon-date">--</div>
-            <div id="next-full-moon-age">--</div>
+            <span class="label" id="next-phase-label">Next Phase</span>
+            <div id="next-phase-date">--</div>
+            <div id="next-phase-age">--</div>
         </div>
 
         <!-- Navigation Link -->
@@ -318,43 +318,61 @@
                      throw new Error(`Day Count is NaN. CustomDate=${customDate}, NMCustomDate=${nmCustomDate}`);
                 }
 
-                document.getElementById('moon-day-count').textContent = `月齢日付: ${dayCount}日目`;
+                document.getElementById('moon-day-count').textContent = `月歴: ${dayCount}日`;
 
-                // 4. Next Full Moon (Phase 180)
-                const nextFullMoon = Astronomy.SearchMoonPhase(180, now, 40);
-                if (nextFullMoon) {
-                    let fmTime = nextFullMoon.date;
-                    // Ensure Time object type protection
-                    if (typeof fmTime.tt === 'undefined' && fmTime instanceof Date) {
-                        fmTime = Astronomy.MakeTime(fmTime);
-                    }
+                // 4. Next Major Phase (New, First Q, Full, Third Q)
+                const phases = [
+                    { phase: 0, name: "新月", label: "NEW MOON" }, 
+                    { phase: 90, name: "上弦", label: "FIRST QUARTER" }, 
+                    { phase: 180, name: "満月", label: "FULL MOON" }, 
+                    { phase: 270, name: "下弦", label: "THIRD QUARTER" }
+                ];
+                
+                let nearestPhase = null;
+                let minTime = Infinity;
+                
+                // Search for the next occurrence of each phase
+                for (const p of phases) {
+                    // Search forward from now (up to 45 days)
+                    const hunt = Astronomy.SearchMoonPhase(p.phase, now, 45);
+                    if (hunt && hunt.date) {
+                        let huntDate = hunt.date;
+                        if (typeof huntDate.tt === 'undefined' && huntDate instanceof Date) { } 
+                        else if (huntDate.tt) huntDate = hunt.date; 
 
-                    // Find the New Moon immediately PRECEDING this specific Full Moon
-                    // This ensures we are counting from the correct cycle start
-                    const cycleStartNM = Astronomy.SearchMoonPhase(0, fmTime.date, -30);
-                    
-                    if (cycleStartNM) {
-                        let csTime = cycleStartNM.date;
-                         if (typeof csTime.tt === 'undefined' && csTime instanceof Date) {
-                            csTime = Astronomy.MakeTime(csTime);
+                        // We only care if it's in the future (though SearchMoonPhase usually ensures this for positive days)
+                        // Use raw time comparison
+                        if (huntDate.getTime() < minTime) {
+                            minTime = huntDate.getTime();
+                            nearestPhase = { ...p, time: hunt, dateJS: huntDate };
                         }
-                        
-                        const fmDateJS = fmTime.date;
-                        const csDateJS = csTime.date;
-                        
-                        const fmCustomDate = getCustomDate(fmDateJS);
-                        const csCustomDate = getCustomDate(csDateJS);
-                        
-                        // Count days relative to THAT cycle's start
-                        const fmDayCount = Math.floor((fmCustomDate.getTime() - csCustomDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                        const fmCustomTimeStr = getCustomTimeStr(fmDateJS);
-                        const fmTimeStr = fmCustomTimeStr.substring(0, 5); // HH:MM
-                        
-                        document.getElementById('next-full-moon-date').textContent = `日時: ${fmDayCount}日目 ${fmTimeStr}`;
-                        
-                        // Age at Full Moon relative to THAT cycle's start
-                        const fmAge = fmTime.tt - csTime.tt;
-                        document.getElementById('next-full-moon-age').textContent = `月齢: ${fmAge.toFixed(1)}`;
+                    }
+                }
+
+                if (nearestPhase) {
+                    // Update Label
+                    document.getElementById('next-phase-label').textContent = "NEXT " + nearestPhase.label;
+                    
+                    // Days until (Custom Date difference)
+                    // "次の[月相]まであとn日"
+                    const targetCustomDate = getCustomDate(nearestPhase.dateJS);
+                    
+                    // Difference in days
+                    const diffTime = targetCustomDate.getTime() - customDate.getTime();
+                    const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    document.getElementById('next-phase-date').textContent = `次の${nearestPhase.name}まであと${daysUntil}日`;
+                    
+                    // Age at that moment
+                    // Calculate age relative to the New Moon preceding that event
+                    // We search backwards from the event time
+                    const prevNMForEvent = Astronomy.SearchMoonPhase(0, nearestPhase.dateJS, -40);
+                    
+                    if (prevNMForEvent) {
+                         const ageAtEvent = nearestPhase.time.tt - prevNMForEvent.tt;
+                         document.getElementById('next-phase-age').textContent = `その瞬間の月齢: ${ageAtEvent.toFixed(1)}`;
+                    } else {
+                         document.getElementById('next-phase-age').textContent = `その瞬間の月齢: --`;
                     }
                 }
 
