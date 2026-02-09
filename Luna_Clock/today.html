@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;500&family=Noto+Serif:ital,wght@1,700&display=swap"
       rel="stylesheet"
     />
     <!-- Astronomy Engine Library -->
@@ -61,18 +61,95 @@
         text-shadow: 0 0 10px var(--moon-glow);
       }
 
-      .moon-container {
+      .clock-container {
         position: relative;
-        width: 200px;
-        height: 200px;
+        width: 320px;
+        height: 320px; /* Slightly larger to accommodate Moon outside */
         margin: 2rem auto;
-        filter: drop-shadow(0 0 15px var(--moon-glow));
+        border-radius: 50%;
+        /* Border is now the dial track */
+        /* We want the border to coincide with ticks? */
+        /* Let's remove border from container and make a specific dial element if needed, 
+           OR assume ticks form the dial visually. User said "24 ticks". 
+           Let's keep a faint track. */
+        /* Actual visual dial size should be smaller than container so moon fits outside */
+        /* Creating a pseudo-element for the ring */
+      }
+      
+      .clock-container::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 220px;
+          height: 220px;
+          border: 1px solid rgba(255, 255, 255, 0.1); /* The definition ring */
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 0;
+      }
+
+      .horizon-line {
+        position: absolute;
+        top: calc(50% + 2px);
+        left: 50%; /* Centered in container */
+        width: 280px; /* Wider than dial */
+        height: 1px;
+        background: rgba(168, 176, 208, 0.3);
+        transform: translate(-50%, -50%);
+        z-index: 1;
+      }
+      
+      .clock-tick {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.4);
+        top: 50%;
+        left: 50%;
+        transform-origin: center bottom; /* Not used with translate method, but good to reset */
+        z-index: 2;
+      }
+      
+      .tick-major {
+          width: 4px;
+          height: 15px;
+          background: var(--text-color);
+          box-shadow: 0 0 5px var(--moon-glow);
+      }
+      
+      .tick-minor {
+          width: 1px;
+          height: 8px;
+          opacity: 0.6;
+      }
+      
+      .clock-numeral {
+          position: absolute;
+          transform: translate(-50%, -50%); /* Centered on point */
+          font-family: var(--font-main);
+          font-weight: 700;
+          color: var(--accent-color);
+          font-size: 1.1rem;
+          text-shadow: 0 0 5px rgba(0,0,0,0.8);
+          z-index: 3;
+      }
+
+      .moon-marker {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 50px; /* Slightly smaller to feel precise */
+        height: 50px;
+        transform: translate(-50%, -50%); /* Center pivot */
+        z-index: 10;
+        /* Will be positioned via JS */
+        filter: drop-shadow(0 0 10px var(--moon-glow));
       }
 
       /* SVG Moon Styling */
       #moon-svg {
         width: 100%;
         height: 100%;
+        overflow: visible;
       }
 
       .moon-info {
@@ -140,6 +217,13 @@
           width: 150px;
           height: 150px;
         }
+        .clock-container {
+            width: 260px;
+            height: 260px;
+        }
+        .clock-numeral {
+            font-size: 0.9rem; /* Smaller on mobile */
+        }
         .custom-time {
           font-size: 2.2rem;
         }
@@ -151,24 +235,29 @@
     <div class="container">
         <h1>LUNA CLOCK</h1>
 
-        <div class="moon-container">
-            <!-- Simple SVG representation that will be updated by JS -->
-            <svg id="moon-svg" viewBox="0 0 100 100">
-                <!-- Background: Dark Moon -->
-                <circle cx="50" cy="50" r="48" fill="#151520" stroke="none"></circle>
-                <!-- Path: Illuminated Part -->
-                <path id="moon-phase-path" d="" fill="#e0e0e0" filter="url(#glow)"></path>
-                <!-- Filter for Glow -->
-                <defs>
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                </defs>
-            </svg>
+        <div class="clock-container">
+            <div class="horizon-line"></div>
+            <!-- Ticks and Numerals generated by JS -->
+
+            <div class="moon-marker" id="moon-marker">
+                <!-- Simple SVG representation that will be updated by JS -->
+                <svg id="moon-svg" viewBox="0 0 100 100">
+                    <!-- Background: Dark Moon -->
+                    <circle cx="50" cy="50" r="48" fill="#151520" stroke="none"></circle>
+                    <!-- Path: Illuminated Part -->
+                    <path id="moon-phase-path" d="" fill="#e0e0e0" filter="url(#glow)"></path>
+                    <!-- Filter for Glow -->
+                    <defs>
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                </svg>
+            </div>
         </div>
 
         <div class="moon-info">
@@ -250,6 +339,59 @@
                 // 1. Custom Time & Date
                 const customDate = getCustomDate(now);
                 const timeStr = getCustomTimeStr(now);
+
+                // --- Visual Clock Logic ---
+                // We want to calculate position based on "Solar Time" relative to 18:00
+                // 18:00 Solar -> 0h elapsed -> 180 deg (Left)
+                // 24:00 Solar -> 6h elapsed -> 90 deg (Top)
+                // 06:00 Solar -> 12h elapsed -> 0 deg (Right)
+                // 12:00 Solar -> 18h elapsed -> 270 deg / -90 deg (Bottom)
+                // 18:00 Solar -> 24h elapsed -> 180 deg
+
+                // Helpers for Solar Time
+                const startHour = 18;
+                let hoursSinceStart = now.getHours() - startHour;
+                if (hoursSinceStart < 0) hoursSinceStart += 24;
+                
+                // Add minutes/seconds for smoothness
+                const fractionalHours = hoursSinceStart + (now.getMinutes() / 60) + (now.getSeconds() / 3600);
+                
+                // Degrees: Start at 180, decrease by 15 deg per hour (Clockwise motion means Angle DECREASES in standard Cartesian? No wait.)
+                // Standard Cartesian: 180 -> 90 is Decreasing.
+                // 180 -> 90 -> 0 -> -90. Yes.
+                const angleDeg = 180 - (fractionalHours * 15);
+                
+                // Convert to Radians
+                const angleRad = angleDeg * (Math.PI / 180);
+                
+                // Radius of the clock dial (minus padding)
+                // Clock container is 320px -> Radius 160px.
+                // Dial ring is 220px -> Radius 110px.
+                // Moon needs to be OUTSIDE.
+                const trackRadius = 145; // 145px radius for moon center
+                
+                // Cartesian X, Y
+                const x = trackRadius * Math.cos(angleRad);
+                const y = trackRadius * Math.sin(angleRad); // Positive Y is UP in math
+                
+                // CSS Positioning (Top/Left are from Top-Left corner 0,0)
+                // Center is 50%, 50%.
+                // left = 50% + x
+                // top = 50% - y
+                
+                const moonMarker = document.getElementById('moon-marker');
+                // Use translate for better performance?
+                // Actually changing styles directly is fine for 1sec update.
+                // But let's use calc.
+                moonMarker.style.left = `calc(50% + ${x}px)`;
+                moonMarker.style.top = `calc(50% - ${y}px)`;
+                
+                // Rotate the moon icon itself so the "Light" direction stays consistent relative to user?
+                // Or does the moon rotate? 
+                // User said "Moon icon moves on the scale". Usually implied fixed orientation (North Up).
+                // If we want the moon to "roll", we would rotate it. 
+                // Standard map: North up. Moon Phase angle calculation assumes North Up?
+                // Let's keep rotation 0 for now.
                 
                 // Removed standard date display
                 document.getElementById('custom-time-text').textContent = timeStr;
@@ -516,8 +658,89 @@
             
             svg.setAttribute('d', d);
         }
+        
+        function initClockFace() {
+            const container = document.querySelector('.clock-container');
+            const dialRadius = 110; // Radius for ticks
+            const numeralRadius = 85; // Radius for numerals
+            
+            // Create 24 Ticks
+            for (let i = 0; i < 24; i++) {
+                const tick = document.createElement('div');
+                
+                // 0 index is Top (Lunar 6). 
+                // Angle: i * 15 deg.
+                // i=0 -> 0 deg (Top).
+                // i=6 -> 90 deg (Right).
+                
+                const angle = i * 15;
+                const isMajor = (i % 6 === 0);
+                
+                tick.className = `clock-tick ${isMajor ? 'tick-major' : 'tick-minor'}`;
+                
+                // Transform: Rotate to angle, push out to radius
+                tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -${dialRadius}px)`;
+                
+                container.appendChild(tick);
+            }
+            
+            // Create Numerals
+            // Positions: 
+            // Left (18:00/L0): Omicron (at 9 o'clock / 270 deg / -90 deg ... wait. CSS 0 is Top?)
+            // If we use standard CSS top/left + transform:
+            
+            const numerals = [
+                { text: "VI", angle: 0 },      // Top (L6)
+                { text: "XII", angle: 90 },    // Right (L12)
+                { text: "XVIII", angle: 180 }, // Bottom (L18)
+                { text: "o", angle: 270 }      // Left (L0) - using 'o' for Omicron roughly, or actual char
+            ];
+            
+            numerals.forEach(num => {
+                const el = document.createElement('div');
+                el.className = 'clock-numeral';
+                if (num.text === 'o') {
+                    el.innerHTML = '&omicron;'; // Greek Small Letter Omicron
+                    el.style.fontFamily = '"Noto Serif", serif';
+                    el.style.fontStyle = 'italic';
+                } else {
+                    el.innerText = num.text;
+                }
+                
+                // Calculate pos
+                // angle 0 = Top (0, -r)
+                // angle 90 = Right (r, 0)
+                const rad = (num.angle - 90) * (Math.PI / 180); // -90 offset because Math 0 is Right, we want 0 to be Top??
+                // Wait. 
+                // Math 0 is Right. 
+                // Top is -90 (270).
+                
+                // Let's use simple trig with Math 0 = Right.
+                // Top (VI): 270 deg.
+                // Right (XII): 0 deg.
+                // Bottom (XVIII): 90 deg.
+                // Left (O): 180 deg.
+                
+                let trigAngle;
+                if (num.angle === 0) trigAngle = 270;
+                else if (num.angle === 90) trigAngle = 0;
+                else if (num.angle === 180) trigAngle = 90;
+                else trigAngle = 180;
+                
+                const r = numeralRadius;
+                const rads = trigAngle * (Math.PI / 180);
+                const x = r * Math.cos(rads);
+                const y = r * Math.sin(rads);
+                
+                el.style.left = `calc(50% + ${x}px)`;
+                el.style.top = `calc(50% + ${y}px)`; // +y because CSS Y is down
+                
+                container.appendChild(el);
+            });
+        }
 
         // Init
+        document.addEventListener("DOMContentLoaded", initClockFace);
         // Run update initially and then interval
         updateDisplay();
         setInterval(updateDisplay, 1000);
