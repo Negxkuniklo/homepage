@@ -105,7 +105,7 @@
         background: rgba(255, 255, 255, 0.4);
         top: 50%;
         left: 50%;
-        transform-origin: center bottom; /* Not used with translate method, but good to reset */
+        transform-origin: center center; /* Reset to center for correct rotation */
         z-index: 2;
       }
       
@@ -235,14 +235,10 @@
     <div class="container">
         <h1>LUNA CLOCK</h1>
 
-        <!-- 2. Moon Day (月歴) -->
-        <div class="time-display" style="border: none; margin: 0; padding: 0.5rem;">
-             <div class="moon-day-count" id="moon-day-count">--</div>
-        </div>
-
-        <!-- 3. Moon Age (月齢) -->
-        <div class="time-display" style="border: none; margin: 0; padding: 0.5rem; padding-top: 0;">
-             <div class="moon-day-count" id="moon-age-display">--</div>
+        <!-- 2. Moon Day (月歴) & 3. Moon Age (月齢) -->
+        <div class="time-display" style="border: none; margin: 0; padding: 0.5rem; display: flex; justify-content: center; gap: 2rem;">
+             <div class="moon-day-count" id="moon-day-count" style="margin: 0;">--</div>
+             <div class="moon-day-count" id="moon-age-display" style="margin: 0;">--</div>
         </div>
 
         <!-- 4. Visual Clock -->
@@ -677,17 +673,22 @@
                 const tick = document.createElement('div');
                 
                 // 0 index is Top (Lunar 6). 
-                // Angle: i * 15 deg.
-                // i=0 -> 0 deg (Top).
-                // i=6 -> 90 deg (Right).
-                
                 const angle = i * 15;
                 const isMajor = (i % 6 === 0);
                 
                 tick.className = `clock-tick ${isMajor ? 'tick-major' : 'tick-minor'}`;
                 
+                // Calculate position to be INSIDE the circle (Radius 110)
+                // tick-major height: 15px. Centered -> Radius = 110 - (15/2) = 102.5
+                // tick-minor height: 8px. Centered -> Radius = 110 - (8/2) = 106
+                // This aligns the OUTER edge of the tick with the 110px circle.
+                
+                let rOffset = 110;
+                if (isMajor) rOffset -= 7.5;
+                else rOffset -= 4;
+                
                 // Transform: Rotate to angle, push out to radius
-                tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -${dialRadius}px)`;
+                tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -${rOffset}px)`;
                 
                 container.appendChild(tick);
             }
