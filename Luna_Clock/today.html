@@ -262,6 +262,25 @@
         .custom-time {
           font-size: 2.2rem;
         }
+        
+        /* Adjust marker sizes on mobile to prevent overlap */
+        .sun-marker {
+          width: 24px;
+          height: 24px;
+        }
+        .sun-body {
+          /* Inherit size */
+        }
+        .moon-marker {
+          width: 32px;
+          height: 32px;
+        }
+        .clock-tick.tick-major {
+          height: 12px; /* Slightly shorter ticks */
+        }
+        .clock-tick.tick-minor {
+          height: 6px;
+        }
       }
     </style>
   </head>
@@ -423,10 +442,10 @@
         const isMobile = window.matchMedia("(max-width: 480px)").matches;
         // Mobile Container: 260px (R=130) vs PC: 380px (R=190)
         return {
-          sunRadius: isMobile ? 115 : 175,
-          moonRadius: isMobile ? 85 : 135,
-          dialRadius: isMobile ? 70 : 110,
-          numeralRadius: isMobile ? 55 : 85
+          sunRadius: isMobile ? 120 : 175,  // Mobile: Pushed to edge (120+12=132 ~ limit)
+          moonRadius: isMobile ? 85 : 135,  // Mobile: 85 (Inner ~69, Outer ~101)
+          dialRadius: isMobile ? 60 : 110,  // Mobile: Shrunk dial (Outer tip ~66)
+          numeralRadius: isMobile ? 40 : 85 // Mobile: Moved inside dial
         };
       }
 
