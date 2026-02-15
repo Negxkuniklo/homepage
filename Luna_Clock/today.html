@@ -100,9 +100,37 @@
         z-index: 1;
       }
 
-      /* Hiding clock elements as requested */
-      .clock-tick, .clock-numeral {
-        display: none;
+      .clock-tick {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.4);
+        top: 50%;
+        left: 50%;
+        transform-origin: center center; /* Reset to center for correct rotation */
+        z-index: 2;
+      }
+
+      .tick-major {
+        width: 4px;
+        height: 15px;
+        background: var(--text-color);
+        box-shadow: 0 0 5px var(--moon-glow);
+      }
+
+      .tick-minor {
+        width: 1px;
+        height: 8px;
+        opacity: 0.6;
+      }
+
+      .clock-numeral {
+        position: absolute;
+        transform: translate(-50%, -50%); /* Centered on point */
+        font-family: var(--font-main);
+        font-weight: 700;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        z-index: 3;
       }
 
       .moon-marker {
@@ -563,8 +591,87 @@
         svg.setAttribute("d", d);
       }
 
+      function initClockFace() {
+        const container = document.querySelector(".clock-container");
+        const dialRadius = 110; // Radius for ticks
+        const numeralRadius = 85; // Radius for numerals
+
+        // Create 24 Ticks
+        for (let i = 0; i < 24; i++) {
+          const tick = document.createElement("div");
+
+          // 0 index is Top (0 deg)
+          const angle = i * 15;
+          const isMajor = i % 6 === 0;
+
+          tick.className = `clock-tick ${isMajor ? "tick-major" : "tick-minor"}`;
+
+          // Calculate offset for ticks
+          let rOffset = 110;
+          if (isMajor) rOffset -= 7.5;
+          else rOffset -= 4;
+
+          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -${rOffset}px)`;
+          container.appendChild(tick);
+        }
+
+        // Create Greek Cardinal Points
+        // Top: Β (0 deg)
+        // Right: Α (90 deg)
+        // Bottom: Ν (180 deg)
+        // Left: Δ (270 deg)
+
+        const cardinals = [
+          { text: "Β", angle: 0 },    // Borras (North) - Top
+          { text: "Α", angle: 90 },   // Anatoli (East) - Right
+          { text: "Ν", angle: 180 },  // Notos (South) - Bottom
+          { text: "Δ", angle: 270 },  // Dysis (West) - Left
+        ];
+
+        cardinals.forEach((point) => {
+          const el = document.createElement("div");
+          el.className = "clock-numeral";
+          el.innerText = point.text;
+          el.style.fontSize = "1.5rem"; // Slightly larger for Greek letters
+
+          // Calculate position
+          // angle 0 = Top (0, -r)
+          // Mathematical 0 is usually Right.
+          // But our loop for ticks used 0=Top (rotate(0) is usually top dependent on CSS?).
+          // Actually no, rotate(0) is strictly 12 o'clock in CSS transform if the element is vertical?
+          // Let's use standard trig relative to center.
+          // Top = (0, -r)
+          // Right = (r, 0)
+          // Bottom = (0, r)
+          // Left = (-r, 0)
+
+          const r = numeralRadius;
+          // Trig Angle (0=Right, Counter-Clockwise from Right):
+          // Top(90) -> wait, browser coords Y is down.
+          // Top = 270 deg (-90).
+          // Right = 0 deg.
+          // Bottom = 90 deg.
+          // Left = 180 deg.
+
+          let rads;
+          if (point.angle === 0) rads = -Math.PI / 2;     // Top
+          else if (point.angle === 90) rads = 0;          // Right
+          else if (point.angle === 180) rads = Math.PI / 2; // Bottom
+          else rads = Math.PI;                            // Left
+
+          const x = r * Math.cos(rads);
+          const y = r * Math.sin(rads);
+
+          el.style.left = `calc(50% + ${x}px)`;
+          el.style.top = `calc(50% + ${y}px)`;
+
+          container.appendChild(el);
+        });
+      }
+
       // Init
       document.addEventListener("DOMContentLoaded", () => {
+         initClockFace();
          updateDisplay();
          setInterval(updateDisplay, 1000);
       });
