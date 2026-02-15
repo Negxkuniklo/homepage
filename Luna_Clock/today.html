@@ -419,6 +419,17 @@
         return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
       }
 
+      function getClockConfig() {
+        const isMobile = window.matchMedia("(max-width: 480px)").matches;
+        // Mobile Container: 260px (R=130) vs PC: 380px (R=190)
+        return {
+          sunRadius: isMobile ? 115 : 175,
+          moonRadius: isMobile ? 85 : 135,
+          dialRadius: isMobile ? 70 : 110,
+          numeralRadius: isMobile ? 55 : 85
+        };
+      }
+
       function updateDisplay() {
         try {
           if (typeof Astronomy === "undefined") {
@@ -426,6 +437,7 @@
           }
 
           const now = new Date(); // System time
+          const config = getClockConfig();
 
           // 1. Custom Time & Date
           const customDate = getCustomDate(now);
@@ -448,8 +460,8 @@
           const sunAngleRad = sunAngleDeg * (Math.PI / 180);
 
           // Track Radii
-          const sunTrackRadius = 175;
-          const moonTrackRadius = 135;
+          const sunTrackRadius = config.sunRadius;
+          const moonTrackRadius = config.moonRadius;
 
           // Place Sun
           // Standard Trig: 0=Right, 90=Top (if Y is up).
@@ -593,8 +605,14 @@
 
       function initClockFace() {
         const container = document.querySelector(".clock-container");
-        const dialRadius = 110; // Radius for ticks
-        const numeralRadius = 85; // Radius for numerals
+        
+        // Clear existing dynamic elements
+        const oldTicks = container.querySelectorAll(".clock-tick, .clock-numeral");
+        oldTicks.forEach(el => el.remove());
+
+        const config = getClockConfig();
+        const dialRadius = config.dialRadius; // Radius for ticks
+        const numeralRadius = config.numeralRadius; // Radius for numerals
 
         // Create 24 Ticks
         for (let i = 0; i < 24; i++) {
@@ -607,7 +625,8 @@
           tick.className = `clock-tick ${isMajor ? "tick-major" : "tick-minor"}`;
 
           // Calculate offset for ticks
-          let rOffset = 110;
+          // Using dialRadius as base
+          let rOffset = dialRadius;
           if (isMajor) rOffset -= 7.5;
           else rOffset -= 4;
 
@@ -632,20 +651,12 @@
           const el = document.createElement("div");
           el.className = "clock-numeral";
           el.innerText = point.text;
-          el.style.fontSize = "1.5rem"; // Slightly larger for Greek letters
+          // Font size adjust relative? Or just fixed?
+          // el.style.fontSize = "1.5rem"; // Use CSS class better
 
           // Calculate position
-          // angle 0 = Top (0, -r)
-          // Mathematical 0 is usually Right.
-          // But our loop for ticks used 0=Top (rotate(0) is usually top dependent on CSS?).
-          // Actually no, rotate(0) is strictly 12 o'clock in CSS transform if the element is vertical?
-          // Let's use standard trig relative to center.
-          // Top = (0, -r)
-          // Right = (r, 0)
-          // Bottom = (0, r)
-          // Left = (-r, 0)
-
           const r = numeralRadius;
+
           // Trig Angle (0=Right, Counter-Clockwise from Right):
           // Top(90) -> wait, browser coords Y is down.
           // Top = 270 deg (-90).
@@ -674,6 +685,12 @@
          initClockFace();
          updateDisplay();
          setInterval(updateDisplay, 1000);
+         
+         // Resize Handlers
+         window.addEventListener("resize", () => {
+           initClockFace();
+           updateDisplay();
+         });
       });
     </script>
   </body>
