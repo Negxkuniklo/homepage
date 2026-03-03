@@ -17,8 +17,9 @@ OSSやLinux、万年筆やシーリングスタンプが好きです。
 うさぎとアップルミントを育ててます。  
 VRChatやってます。  
 
-- うさ耳集会　主催  
-- セレニテス・ティアソス　代表  
+- うさ耳集会　主催
+- 特務機関Lagomorpha　代表
+- Selenites Thiasos　代表  
   
 ## 公式設定  
   
@@ -40,4 +41,4 @@ VRChatやってます。
 - [Amazonほしいものリスト](https://www.amazon.jp/hz/wishlist/ls/2AJV2IINY5530?ref_=wl_share)
 - [BOOTHほしいものリスト](https://booth.pm/wish_list_names/pZvTnPoV)
 - [BOOTH購入済みリスト](https://booth.pm/wish_list_names/8yWTlzRX)
-- [セレニズム/セレニテス・ティアソス]()
+- [Selenites Thiasos](320267)
