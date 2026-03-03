@@ -28,6 +28,7 @@ Selenismを信仰しています。
 - [Kernel（人生哲学）](./KernelIndex)
 - [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
 - [Luna_Clock](./Luna_Clock/today.html)
+- [Luna_Clock（厳密バージョン）](./Luna_Clock/tomoon.html)
 - [Instagram](https://www.instagram.com/nonnanorthmarine/)
 - [Threads](https://www.threads.net/@nonnanorthmarine)
 - [X（旧Twitter）](https://x.com/nonnanorthmarin)
