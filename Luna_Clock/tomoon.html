@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUNA CLOCK - Moon Phase & Custom Time</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;500&family=Noto+Serif:ital,wght@1,700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Astronomy Engine Library -->
+    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #050510;
+        --text-color: #e0e0e0;
+        --accent-color: #a8b0d0;
+        --moon-glow: rgba(200, 210, 255, 0.2);
+        --font-main: "Cinzel", serif;
+        --font-jp: "Noto Serif JP", serif;
+      }
+
+      * {
+        box-sizing: border-sizing;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: var(--font-jp);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto;
+        /* Allow scrolling */
+        background: radial-gradient(circle at center, #1a1a2e 0%, #050510 80%);
+      }
+
+      .container {
+        text-align: center;
+        width: 90%;
+        max-width: 600px;
+        padding: 2rem;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        font-family: var(--font-main);
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.2em;
+        color: var(--accent-color);
+        text-shadow: 0 0 10px var(--moon-glow);
+      }
+
+      .clock-container {
+        position: relative;
+        width: 380px;
+        height: 380px;
+        margin: 2rem auto;
+        border-radius: 50%;
+      }
+
+      .clock-container::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 220px;
+        height: 220px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        /* The definition ring */
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 0;
+      }
+
+      .horizon-line {
+        position: absolute;
+        top: calc(50% + 1px);
+        /* Pushing down 1px to align with 0-12 axis */
+        left: 50%;
+        width: 340px;
+        height: 1px;
+        background: rgba(168, 176, 208, 0.3);
+        transform: translate(-50%, -50%);
+        z-index: 1;
+      }
+
+      .clock-tick {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.4);
+        top: 50%;
+        left: 50%;
+        transform-origin: center center;
+        /* Reset to center for correct rotation */
+        z-index: 2;
+      }
+
+      .tick-major {
+        width: 4px;
+        height: 15px;
+        background: var(--text-color);
+        box-shadow: 0 0 5px var(--moon-glow);
+      }
+
+      .tick-minor {
+        width: 1px;
+        height: 8px;
+        opacity: 0.6;
+      }
+
+      .clock-numeral {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font-family: var(--font-main);
+        font-weight: 700;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+        text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        z-index: 3;
+      }
+
+      .moon-marker {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        filter: drop-shadow(0 0 8px var(--moon-glow));
+      }
+
+      /* SVG Moon Styling */
+      #moon-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .moon-info {
+        margin-bottom: 2rem;
+      }
+
+      .moon-age-number {
+        font-family: var(--font-main);
+        font-size: 1.2rem;
+        color: #8899aa;
+      }
+
+      .time-display {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .custom-date {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.1em;
+      }
+
+      .custom-time {
+        font-family: var(--font-main);
+        font-size: 3rem;
+        font-weight: 700;
+        text-shadow: 0 0 20px rgba(168, 176, 208, 0.3);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .moon-day-count {
+        font-size: 1.1rem;
+        color: var(--accent-color);
+        margin-top: 0.5rem;
+      }
+
+      .next-moon-info {
+        font-size: 0.9rem;
+        color: #667788;
+        margin-top: 2rem;
+        line-height: 1.6;
+      }
+
+      .label {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        opacity: 0.7;
+        margin-bottom: 0.2rem;
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .moon-container {
+          width: 150px;
+          height: 150px;
+        }
+
+        .clock-container {
+          width: 260px;
+          height: 260px;
+        }
+
+        .clock-numeral {
+          font-size: 0.9rem;
+          /* Smaller on mobile */
+        }
+
+        .custom-time {
+          font-size: 2.2rem;
+        }
+
+        /* Adjust marker sizes on mobile to prevent overlap */
+        .moon-marker {
+          width: 32px;
+          height: 32px;
+        }
+
+        .clock-tick.tick-major {
+          height: 12px;
+          /* Slightly shorter ticks */
+        }
+
+        .clock-tick.tick-minor {
+          height: 6px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>LUNA CLOCK</h1>
+
+      <!-- 2. Moon Day (月歴) & 3. Moon Age (月齢) -->
+      <div
+        class="time-display"
+        style="
+          border: none;
+          margin: 0;
+          padding: 0.5rem;
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+        "
+      >
+        <div class="moon-day-count" id="moon-day-count" style="margin: 0">
+          --
+        </div>
+        <div class="moon-day-count" id="moon-age-display" style="margin: 0">
+          --
+        </div>
+      </div>
+
+      <!-- 4. Visual Clock -->
+      <div class="clock-container">
+        <div class="horizon-line"></div>
+        <!-- Ticks and Numerals generated by JS -->
+
+        <!-- Moon Marker -->
+        <div class="moon-marker" id="moon-marker">
+          <!-- Simple SVG representation that will be updated by JS -->
+          <svg id="moon-svg" viewBox="0 0 100 100">
+            <!-- Background: Dark Moon -->
+            <circle
+              cx="50"
+              cy="50"
+              r="48"
+              fill="#151520"
+              stroke="none"
+            ></circle>
+            <!-- Path: Illuminated Part -->
+            <path
+              id="moon-phase-path"
+              d=""
+              fill="#e0e0e0"
+              filter="url(#glow)"
+            ></path>
+            <!-- Filter for Glow -->
+            <defs>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 5. Digital Time -->
+      <div
+        class="time-display"
+        style="border: none; margin-top: 0; padding-top: 1.5rem"
+      >
+        <div class="custom-time" id="custom-time-text">00:00:00</div>
+      </div>
+
+      <!-- 6. Next Phase Info -->
+      <div
+        class="next-moon-info"
+        style="
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding-top: 1.5rem;
+          margin-top: 1rem;
+        "
+      >
+        <span class="label" id="next-phase-label">Next Phase</span>
+        <div id="next-phase-date">--</div>
+        <div id="next-phase-age">--</div>
+      </div>
+
+      <!-- Navigation Link -->
+      <div style="margin-top: 2rem">
+        <a
+          href="month.html"
+          style="
+            color: var(--accent-color);
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+          "
+        >
+          View Lunar Calendar
+        </a>
+      </div>
+
+      <!-- Debug info (hidden primarily, visible if error) -->
+      <div
+        id="debug-info"
+        style="color: red; font-size: 0.8rem; margin-top: 10px; display: none"
+      ></div>
+    </div>
+
+    <script>
+      // Configuration
+      const DAY_START_HOUR = 18;
+
+        // --- Core Time Calculations ---
+
+        /**
+         * Get user's approximate longitude based on their timezone offset.
+         * Japan is UTC+9, offset is -540 minutes. 9h * 15deg/h = 135deg East.
+         */
+        function getLocalLongitude() {
+            const offsetMinutes = new Date().getTimezoneOffset();
+            return -(offsetMinutes / 60) * 15;
+        }
+
+        /**
+         * Calculate true moon coordinates (Altitude and Azimuth) based on Equator.
+         */
+        function getTrueMoonPosition(dateObj) {
+            const longitude = getLocalLongitude();
+            const latitude = 0; // Fixed to Equator (0 degrees)
+
+            const observer = new Astronomy.Observer(latitude, longitude, 0);
+            const time = Astronomy.MakeTime(dateObj);
+
+            // Calculate exact position of the moon in the sky
+            const equ_2000 = Astronomy.Equator('Moon', time, observer, true, true);
+            const horizon = Astronomy.Horizon(time, observer, equ_2000.ra, equ_2000.dec, 'normal');
+
+            return {
+                altitude: horizon.altitude, // degrees above/below horizon (-90 to +90)
+                azimuth: horizon.azimuth    // degrees from North (0=North, 90=East, 180=South, 270=West)
+            };
+        }
+
+        /**
+         * Find the most recent Moonrise time before the given date.
+         */
+        function getLastMoonrise(dateObj) {
+            const longitude = getLocalLongitude();
+            const latitude = 0; // Equator
+            const observer = new Astronomy.Observer(latitude, longitude, 0);
+            
+            // Search backwards up to ~30 hours to find the last moonrise
+            let searchDate = new Date(dateObj);
+            const time = Astronomy.MakeTime(searchDate);
+            
+            // Astronomy.SearchRiseSet(body, observer, direction, startTime, limitDays)
+            // direction: +1 for rise, -1 for set
+            // In astronomy-engine, SearchRiseSet searches FORWARD. 
+            // So we step back 24-30 hours, and search forward to find the one just before 'now'.
+            
+            searchDate.setHours(searchDate.getHours() - 30);
+            const startTime = Astronomy.MakeTime(searchDate);
+            
+            let lastRiseTime = null;
+            let currentSearch = startTime;
+            
+            for (let i = 0; i < 3; i++) { // Find up to 3 rises to be safe
+                const riseEvent = Astronomy.SearchRiseSet('Moon', observer, +1, currentSearch, 2.0);
+                if (riseEvent) {
+                    const riseJSDate = riseEvent.date;
+                    if (riseJSDate.getTime() <= dateObj.getTime()) {
+                        lastRiseTime = riseJSDate;
+                    }
+                    // Move search forward past this rise
+                    currentSearch = Astronomy.MakeTime(new Date(riseJSDate.getTime() + 1000));
+                } else {
+                    break;
+                }
+            }
+            
+            return lastRiseTime || new Date(); // Fallback to now if error
+        }
+
+        /**
+         * Calculate custom date based on Moonrise boundary instead of 18:00
+         */
+        function getCustomDate(date) {
+            // "Date" logic traditionally changes at 0:00. 
+            // If we use moonrise as the start of the day:
+            const lastRise = getLastMoonrise(date);
+            return lastRise;
+        }
+
+        /**
+         * Calculate Lunar Time string.
+         * Lunar day = 24h 50m = 89,400,000 standard ms.
+         * We map this to 24 * 60 * 60 = 86,400,000 lunar ms.
+         * Multiplier to convert real ms elapsed to lunar ms elapsed: 86400 / 89400.
+         */
+        function getCustomTimeStr(date) {
+            const now = date.getTime();
+            const lastRise = getLastMoonrise(date).getTime();
+            
+            const realElapsedMs = now - lastRise;
+            
+            // Convert to lunar milliseconds
+            const standardDayMs = 24 * 60 * 60 * 1000;      // 86,400,000 ms
+            const lunarDayRealMs = (24 * 60 + 50) * 60 * 1000; // 89,400,000 ms
+            
+            // scale = 864 / 894 ~ 0.96644 standard seconds per lunar second?
+            // Wait: 1 real day + 50m (89.4 million ms) = 24 lunar hours (86.4 million lunar ms).
+            // So lunar_ms = real_ms * (86,400,000 / 89,400,000)
+            const lunarMs = realElapsedMs * (standardDayMs / lunarDayRealMs);
+            
+            const hours = Math.floor(lunarMs / 3600000);
+            const mins = Math.floor((lunarMs % 3600000) / 60000);
+            const secs = Math.floor((lunarMs % 60000) / 1000);
+
+            // Cap at 23:59:59 just in case of rounding slightly over before the next rise is found
+            const safeHours = Math.min(23, Math.max(0, hours));
+            const safeMins = Math.min(59, Math.max(0, mins));
+            const safeSecs = Math.min(59, Math.max(0, secs));
+
+            return `${String(safeHours).padStart(2, "0")}:${String(safeMins).padStart(2, "0")}:${String(safeSecs).padStart(2, "0")}`;
+        }
+
+      function getClockConfig() {
+        const isMobile = window.matchMedia("(max-width: 480px)").matches;
+        return {
+          orbitRadius: isMobile ? 120 : 175,
+          dialRadius: isMobile ? 60 : 110,
+          numeralRadius: isMobile ? 40 : 85,
+        };
+      }
+
+      function updateDisplay() {
+        try {
+          if (typeof Astronomy === "undefined") {
+            throw new Error("Astronomy library not loaded.");
+          }
+
+          const now = new Date(); // System time
+          const config = getClockConfig();
+
+          // 1. Custom Time & Date
+          const customDate = getCustomDate(now);
+          const timeStr = getCustomTimeStr(now);
+
+          // --- Visual Clock Logic ---
+          // Requirements:
+          // Rotation: Counter-Clockwise (Right -> Top -> Left -> Bottom)
+          // 6:00 -> Right (0 deg)
+          // 12:00 -> Top (90 deg)
+          // 18:00 -> Left (180 deg)
+          // 0:00 -> Bottom (270 deg / -90 deg)
+
+          // Track Radii
+          const orbitRadius = config.orbitRadius;
+
+                // 2. True Moon Position (Horizon Coordinates)
+                const moonPos = getTrueMoonPosition(now);
+                
+                // altitude: 0 is on the horizon line. 90 is directly overhead.
+                // azimuth: We map azimuth to the clock face circle (x-axis left/right).
+                // Azimuth mapping for visual representation (Northern Hemisphere view looking South):
+                // East (rising) = 90 deg -> Left of dial (X = -orbitRadius)
+                // West (setting) = 270 deg -> Right of dial (X = +orbitRadius)
+                
+                // To explicitly map the true horizon to Y=0:
+                // Y (vertical) = (moonPos.altitude / 90) * orbitRadius
+                // so when altitude=0 (rising/setting), Y=0.
+                
+                // Map azimuth to X to form a circular arc. 
+                // X = sin(azimuth - 180) * orbitRadius
+                // azimuth 90(E) -> sin(-90) = -1 -> X = -orbitRadius (Left)
+                // azimuth 270(W) -> sin(90) = 1 -> X = orbitRadius (Right)
+                // azimuth 180(S) -> sin(0) = 0 -> X = 0 (Center)
+                // azimuth 0/360(N) -> X = 0 (Center) underground.
+                
+                const moonX = Math.sin((moonPos.azimuth - 180) * (Math.PI / 180)) * orbitRadius;
+                const moonY = (moonPos.altitude / 90) * orbitRadius;
+
+                // Get Moon Phase (0..360) for visual drawing
+                const phaseLon = Astronomy.MoonPhase(now);
+
+          const moonMarker = document.getElementById("moon-marker");
+          moonMarker.style.left = `calc(50% + ${moonX}px)`;
+          moonMarker.style.top = `calc(50% - ${moonY}px)`;
+
+          // Removed standard date display
+          document.getElementById("custom-time-text").textContent = timeStr;
+
+          // 2. Astronomy Calculations (Keeping existing logic for text displays)
+          const prevNewMoon = Astronomy.SearchMoonPhase(0, now, -40);
+
+          if (!prevNewMoon) {
+            // Fallback or error handling
+          } else {
+            const dateNowObj = Astronomy.MakeTime(now);
+            let prevNMTime = prevNewMoon.date;
+
+            // Robustness for date structure
+            if (
+              typeof prevNMTime.tt === "undefined" &&
+              prevNMTime instanceof Date
+            ) {
+              prevNMTime = Astronomy.MakeTime(prevNMTime);
+            }
+
+            const ageDays = dateNowObj.tt - prevNMTime.tt;
+            document.getElementById("moon-age-display").textContent =
+              `月齢: ${ageDays.toFixed(1)}`;
+
+            // Moon Day Count
+            let nmDateJS = prevNMTime.date;
+            const nmCustomDate = getCustomDate(nmDateJS);
+            const diffTime = customDate.getTime() - nmCustomDate.getTime();
+            const dayCount = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            document.getElementById("moon-day-count").textContent =
+              `月歴: ${dayCount}日`;
+          }
+
+          // Next Major Phase (Keeping existing logic)
+          const phases = [
+            { phase: 0, name: "新月", label: "NEW MOON" },
+            { phase: 90, name: "上弦", label: "FIRST QUARTER" },
+            { phase: 180, name: "満月", label: "FULL MOON" },
+            { phase: 270, name: "下弦", label: "THIRD QUARTER" },
+          ];
+
+          let nearestPhase = null;
+          let minTime = Infinity;
+
+          for (const p of phases) {
+            const hunt = Astronomy.SearchMoonPhase(p.phase, now, 45);
+            if (hunt && hunt.date) {
+              const huntDate = hunt.date.date || hunt.date; // Handle structure
+              if (huntDate.getTime() < minTime) {
+                minTime = huntDate.getTime();
+                nearestPhase = { ...p, time: hunt, dateJS: huntDate };
+              }
+            }
+          }
+
+          if (nearestPhase) {
+            document.getElementById("next-phase-label").textContent =
+              "NEXT " + nearestPhase.label;
+            const targetCustomDate = getCustomDate(nearestPhase.dateJS);
+            const diffTime = targetCustomDate.getTime() - customDate.getTime();
+            const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById("next-phase-date").textContent =
+              `次の${nearestPhase.name}まであと${daysUntil}日`;
+
+            // Age at that moment
+            const prevNMForEvent = Astronomy.SearchMoonPhase(
+              0,
+              nearestPhase.dateJS,
+              -40,
+            );
+            if (prevNMForEvent) {
+              const ageAtEvent = nearestPhase.time.tt - prevNMForEvent.tt;
+              document.getElementById("next-phase-age").textContent =
+                `その瞬間の月齢: ${ageAtEvent.toFixed(1)}`;
+            }
+          }
+
+          // Render Moon Visuals
+          drawMoon(phaseLon);
+        } catch (e) {
+          console.error(e);
+          const debugEl = document.getElementById("debug-info");
+          debugEl.style.display = "block";
+          debugEl.textContent = "Error: " + e.message;
+        }
+      }
+
+      function drawMoon(phaseAngle) {
+        const svg = document.getElementById("moon-phase-path");
+
+        // Normalize angle
+        let angle = phaseAngle % 360;
+        if (angle < 0) angle += 360;
+
+        const r = 48;
+        let d = "";
+        const rad = angle * (Math.PI / 180);
+        const tr = r * Math.cos(rad); // Terminator radius (signed)
+        const trAbs = Math.abs(tr);
+
+        if (angle <= 180) {
+          // Waxing: Right Limb
+          // Limb: M 50 2 A 48 48 0 0 1 50 98
+          // Terminator: From 50 98 to 50 2
+          const sweep = tr > 0 ? 0 : 1;
+          d = `M 50 2 A 48 48 0 0 1 50 98 A ${trAbs} 48 0 0 ${sweep} 50 2`;
+        } else {
+          // Waning: Left Limb
+          // Limb: M 50 2 A 48 48 0 0 0 50 98
+          // Terminator: From 50 98 to 50 2
+          const sweep = tr < 0 ? 0 : 1;
+          d = `M 50 2 A 48 48 0 0 0 50 98 A ${trAbs} 48 0 0 ${sweep} 50 2`;
+        }
+
+        svg.setAttribute("d", d);
+      }
+
+      function initClockFace() {
+        const container = document.querySelector(".clock-container");
+
+        // Clear existing dynamic elements
+        const oldTicks = container.querySelectorAll(
+          ".clock-tick, .clock-numeral",
+        );
+        oldTicks.forEach((el) => el.remove());
+
+        const config = getClockConfig();
+        const dialRadius = config.dialRadius; // Radius for ticks
+        const numeralRadius = config.numeralRadius; // Radius for numerals
+
+        // Create 24 Ticks
+        for (let i = 0; i < 24; i++) {
+          const tick = document.createElement("div");
+
+          // 0 index is Top (0 deg)
+          const angle = i * 15;
+          const isMajor = i % 6 === 0;
+
+          tick.className = `clock-tick ${isMajor ? "tick-major" : "tick-minor"}`;
+
+          // Calculate offset for ticks
+          // Using dialRadius as base
+          let rOffset = dialRadius;
+          if (isMajor) rOffset -= 7.5;
+          else rOffset -= 4;
+
+          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translate(0, -${rOffset}px)`;
+          container.appendChild(tick);
+        }
+
+        // Create Greek Cardinal Points
+        // Top: Β (0 deg)
+        // Right: Α (90 deg)
+        // Bottom: Ν (180 deg)
+        // Left: Δ (270 deg)
+
+        const cardinals = [
+          { text: "Ν", angle: 0 }, // Borras (North) - Top - Swapped to N
+          { text: "Δ", angle: 90 }, // Dysis (West) - Right (Swapped)
+          { text: "Β", angle: 180 }, // Notos (South) - Bottom - Swapped to B
+          { text: "Α", angle: 270 }, // Anatoli (East) - Left (Swapped)
+        ];
+
+        cardinals.forEach((point) => {
+          const el = document.createElement("div");
+          el.className = "clock-numeral";
+          el.innerText = point.text;
+          // Font size adjust relative? Or just fixed?
+          // el.style.fontSize = "1.5rem"; // Use CSS class better
+
+          // Calculate position
+          const r = numeralRadius;
+
+          // Trig Angle (0=Right, Counter-Clockwise from Right):
+          // Top(90) -> wait, browser coords Y is down.
+          // Top = 270 deg (-90).
+          // Right = 0 deg.
+          // Bottom = 90 deg.
+          // Left = 180 deg.
+
+          let rads;
+          if (point.angle === 0)
+            rads = -Math.PI / 2; // Top
+          else if (point.angle === 90)
+            rads = 0; // Right
+          else if (point.angle === 180)
+            rads = Math.PI / 2; // Bottom
+          else rads = Math.PI; // Left
+
+          const x = r * Math.cos(rads);
+          const y = r * Math.sin(rads);
+
+          el.style.left = `calc(50% + ${x}px)`;
+          el.style.top = `calc(50% + ${y}px)`;
+
+          container.appendChild(el);
+        });
+      }
+
+      // Init
+      document.addEventListener("DOMContentLoaded", () => {
+        initClockFace();
+        updateDisplay();
+        // Run display update every 100ms instead of 1000ms to catch the exact moment 
+        // the "Lunar Second" ticks over, removing the stuttering/uneven second duration effect.
+        setInterval(updateDisplay, 100);
+
+        // Resize Handlers
+        window.addEventListener("resize", () => {
+          initClockFace();
+          updateDisplay();
+        });
+      });
+    </script>
+  </body>
+</html>
