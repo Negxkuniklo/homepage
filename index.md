@@ -16,7 +16,9 @@
 OSSやLinux、万年筆やシーリングスタンプが好きです。  
 うさぎとアップルミントを育ててます。  
 VRChatやってます。  
-Selenismを信仰しています。  
+
+- うさ耳集会　主催  
+- セレニテス・ティアソス　代表  
   
 ## 公式設定  
   
@@ -38,3 +40,4 @@ Selenismを信仰しています。
 - [Amazonほしいものリスト](https://www.amazon.jp/hz/wishlist/ls/2AJV2IINY5530?ref_=wl_share)
 - [BOOTHほしいものリスト](https://booth.pm/wish_list_names/pZvTnPoV)
 - [BOOTH購入済みリスト](https://booth.pm/wish_list_names/8yWTlzRX)
+- [セレニズム/セレニテス・ティアソス]()
