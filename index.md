@@ -41,4 +41,4 @@ VRChatやってます。
 - [Amazonほしいものリスト](https://www.amazon.jp/hz/wishlist/ls/2AJV2IINY5530?ref_=wl_share)
 - [BOOTHほしいものリスト](https://booth.pm/wish_list_names/pZvTnPoV)
 - [BOOTH購入済みリスト](https://booth.pm/wish_list_names/8yWTlzRX)
-- [Selenites Thiasos](320267)
+- [Selenites Thiasos](https://sites.google.com/view/selenitesthiasos/index)
