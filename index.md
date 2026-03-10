@@ -18,9 +18,9 @@ OSSやLinux、万年筆やシーリングスタンプが好きです。
 うさぎとアップルミントを育ててます。  
 VRChatやってます。  
 
-- うさ耳集会　主催
-- 特務機関Lagomorpha　代表
-- Selenites Thiasos　代表  
+- `うさ耳集会`　主催
+- `特務機関Lagomorpha`　代表
+- `Selenites Thiasos`　代表  
   
 ## 公式設定  
   
