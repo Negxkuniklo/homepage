@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mystic Tarot | 今日の運勢</title>
+    <!-- Google Fonts for Mystical vibe -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+JP:wght@300;400;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="./assets/index-DPibvYBS.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CCvxsBxl.css">
+  </head>
+  <body>
+    <!-- Starry Background -->
+    <div class="stars"></div>
+    <div class="twinkling"></div>
+
+    <div class="app-container">
+      <header>
+        <h1>Mystic Tarot</h1>
+        <p class="subtitle">運命を紐解き、未来を変える</p>
+      </header>
+
+      <main>
+        <div class="reading-area">
+          <!-- Major Arcana (Destiny) -->
+          <div class="card-slot">
+            <h2 class="slot-title">今日の運勢</h2>
+            <div class="card-container" id="major-card">
+              <div class="card-inner">
+                <div class="card-front">
+                  <div class="card-pattern"></div>
+                </div>
+                <div class="card-back">
+                  <h3 id="major-name" class="card-name">-</h3>
+                  <p id="major-fate" class="card-desc">-</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Minor Arcana (Action) -->
+          <div class="card-slot">
+            <h2 class="slot-title">運命を変える行動</h2>
+            <div class="card-container" id="minor-card">
+              <div class="card-inner">
+                <div class="card-front">
+                  <div class="card-pattern"></div>
+                </div>
+                <div class="card-back">
+                  <h3 id="minor-name" class="card-name">-</h3>
+                  <p id="minor-action" class="card-desc">-</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-area">
+          <button id="draw-button" class="draw-btn">占う</button>
+        </div>
+        
+        <!-- Text Result Log -->
+        <div class="result-text-area" id="result-text" style="display: none;">
+          <!-- Text will be injected here -->
+        </div>
+      </main>
+    </div>
+
+  </body>
+</html>
