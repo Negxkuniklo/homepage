@@ -5,6 +5,7 @@
   
 ## 更新情報  
 
+- 20260417: [Chrome拡張機能](./Chrome拡張機能.html)を公開しました。
 - 20260310: 公式設定を変更しました。
 - 20260303: [Luna_Clock（厳密バージョン）](./Luna_Clock/tomoon.html)を公開しました。
 - 20260202: [Luna_Clock](./Luna_Clock/today.html)を公開しました。
@@ -33,6 +34,7 @@ VRChatやってます。
   
 - [Kernel（人生哲学）](./KernelIndex)
 - [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
+- [Chrome拡張機能](./Chrome拡張機能.html)
 - [Luna_Clock](./Luna_Clock/today.html)
 - [Luna_Clock（厳密バージョン）](./Luna_Clock/tomoon.html)
 - [Instagram](https://www.instagram.com/nonnanorthmarine/)
