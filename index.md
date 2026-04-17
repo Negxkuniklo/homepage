@@ -1,7 +1,6 @@
-# Nonna Northmarine  
+# Welcome!!  
   
-ようこそ！    
-ここは`のんな・のーすまりん`のホームページです。  
+ここは`Nonna Northmarine`(`のんな・のーすまりん`)のホームページです。  
   
 ## 更新情報  
 
@@ -19,31 +18,43 @@
   
 ## 自己紹介  
   
-北海道のうさぎです。  
-情報系の大学を卒業しましたが、アスタリスクでピラミッドを作ることしかできません。  
+北海道産うさぎ100%。  
+情報系の大学を卒業しましたが、アスタリスクでピラミッドを作ることしかできません。（敗北）  
 OSSやLinux、万年筆やシーリングスタンプが好きです。  
 うさぎとアップルミントを育ててます。  
 VRChatやってます。  
 使用アバター：しなの、みみのこ、マリシア  
-  
-- `うさ耳集会`　主催
-- `特務機関Lagomorpha`　代表
-- `Selenites Thiasos`　代表  
+最近タロット占い始めました。  
   
 ## リンク  
+
+### 成果物
   
 - [Kernel（人生哲学）](./KernelIndex)
 - [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
 - [Chrome拡張機能](./Chrome拡張機能.html)
 - [Luna_Clock](./Luna_Clock/today.html)
 - [Luna_Clock（厳密バージョン）](./Luna_Clock/tomoon.html)
+  
+### SNS
+  
 - [Instagram](https://www.instagram.com/nonnanorthmarine/)
 - [Threads](https://www.threads.net/@nonnanorthmarine)
 - [X（旧Twitter）](https://x.com/nonnanorthmarin)
 - [VRChat](https://vrchat.com/home/user/usr_c65de0b0-7088-4185-80ac-3ca00c47a7e7)
 - [Steam](https://steamcommunity.com/id/nonnanorthmarine/)
 - [YouTube](https://www.youtube.com/@nonnanorthmarine)
+  
+### ほしいものリスト
+  
 - [Amazonほしいものリスト](https://www.amazon.jp/hz/wishlist/ls/2AJV2IINY5530?ref_=wl_share)
 - [BOOTHほしいものリスト](https://booth.pm/wish_list_names/pZvTnPoV)
 - [BOOTH購入済みリスト](https://booth.pm/wish_list_names/8yWTlzRX)
-- [Selenites Thiasos](https://sites.google.com/view/selenitesthiasos/index)
+  
+### グループ
+  
+- [うさ耳集会](https://vrc.group/USAMM.9301)（VRChatグループ）
+- [たれ耳の子保全機構](https://vrc.group/LOPMM.4866)（VRChatグループ）
+- [VRC探偵事務所](https://vrc.group/4869.0956)（VRChatグループ）
+- [特務機関Lagomorpha](https://x.com/LagomorphaSA)（Xアカウント）
+- [Selenites Thiasos](https://sites.google.com/view/selenitesthiasos/index)（Discordサーバー）
