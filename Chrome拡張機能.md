@@ -23,7 +23,7 @@ Markdownファイルを表示し、プレビューとエディターを切り替
 URL短縮サービスの老舗である、イギリスのis.gdを簡単に使うための拡張機能です。  
 アイコンをクリックすると、現在開いているページか、任意のURLを短縮することができます。  
 
-##[WordConvertViewer](https://chromewebstore.google.com/detail/wordconvertviewer/jjbohfbaablcdiablmbjhhicdilhceji)
+## [WordConvertViewer](https://chromewebstore.google.com/detail/wordconvertviewer/jjbohfbaablcdiablmbjhhicdilhceji)
 
 ページ内の特定の単語を指定した単語に書き換えて表示する拡張機能。  
 変換したい単語を登録することで、ウェブページで登録した単語が置き換わって表示される拡張機能です。  
