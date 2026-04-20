@@ -16,3 +16,15 @@ Markdownファイルを表示し、プレビューとエディターを切り替
 品質をスライダーで指定することも出来ます。  
 ローカルの画像を複数枚纏めてWebPに変換できるようになりました。アイコンをクリックして出てくるポップアップへD&Dか、ポップアップをクリックしてアップロードしてください。  
 
+## [URLを短縮 (is.gd)](https://chromewebstore.google.com/detail/url%E3%82%92%E7%9F%AD%E7%B8%AE-isgd/piebdigpepahbngmohkjjodghcbkfkbl?hl=ja&authuser=0&pageId=none)
+
+現在開いているWebページ、または任意のURLを短縮してコピーします。  
+
+URL短縮サービスの老舗である、イギリスのis.gdを簡単に使うための拡張機能です。  
+アイコンをクリックすると、現在開いているページか、任意のURLを短縮することができます。  
+
+##[WordConvertViewer](https://chromewebstore.google.com/detail/wordconvertviewer/jjbohfbaablcdiablmbjhhicdilhceji)
+
+ページ内の特定の単語を指定した単語に書き換えて表示する拡張機能。  
+変換したい単語を登録することで、ウェブページで登録した単語が置き換わって表示される拡張機能です。  
+
