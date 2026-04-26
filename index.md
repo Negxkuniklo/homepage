@@ -2,6 +2,7 @@
 
 ## 更新情報
 
+- 20260426: [タロットカードバトル](./タロットカードバトル)を公開しました。
 - 20260424: Kernelに[019死後の楽しみ](./Kernel/019死後の楽しみ)、[020探偵であること](./Kernel/020探偵であること)、[021短く区切る](./Kernel/021短く区切る)を公開しました。
 - 20260417: 全体の微調整を行いました。
 - 20260417: [Chrome拡張機能](./Chrome拡張機能.html)を公開しました。
@@ -33,6 +34,7 @@ VRChatやってます。
 - [Kernel（人生哲学）](./KernelIndex)
 - [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
 - [Chrome拡張機能](./Chrome拡張機能.html)
+- [タロットカードバトル](./タロットカードバトル)
 - [Luna_Clock](./Luna_Clock/today.html)
 - [Luna_Clock（厳密バージョン）](./Luna_Clock/tomoon.html)
 
