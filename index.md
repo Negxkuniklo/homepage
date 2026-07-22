@@ -13,8 +13,8 @@
 
 ## 公式設定
 
-月で生まれた月兎（ムーンラビット）。  
-月の女神様の祝福で人の姿になって、地球にやってきた。  
+雪うさぎ（北海道産雪100％使用）。
+
 
 ## 自己紹介
 
@@ -22,7 +22,7 @@
 - 情報系の大学を卒業しましたが、アスタリスクでピラミッドを作ることしかできません。（敗北）
 - OSSやLinux、万年筆や懐中時計、シーリングスタンプが好きです。
 - うさぎとアップルミントを育ててます。
-- 最近名探偵とタロット占いを始めました。
+- 最近名探偵始めました。
 - VRChatやってます。  
     使用アバター: しなの、みみのこ、マリシア  
 - 合気道やってます。  
@@ -33,19 +33,17 @@
 ### 成果物
 
 - [Kernel（人生哲学）](./KernelIndex)
-- [GitHub（リポジトリ）](https://github.com/NonnaNorthmarine?tab=repositories)
+- [GitHub（リポジトリ）](https://github.com/Negxkuniklo?tab=repositories)
 - [Chrome拡張機能](./Chrome拡張機能.html)
 - [タロットカードバトル](./タロットカードバトル)
--  [探偵昇格試験「消えた懐中時計の謎」](./探偵昇格試験「消えた懐中時計の謎」/question)
+- [探偵昇格試験「消えた懐中時計の謎」](./探偵昇格試験「消えた懐中時計の謎」/question)
 
 ### SNS
 
-- [Instagram](https://www.instagram.com/nonnanorthmarine/)
-- [Threads](https://www.threads.net/@nonnanorthmarine)
-- [X（旧Twitter）](https://x.com/nonnanorthmarin)
+- [Misskey](https://misskey.io/@negxkuniklo)
 - [VRChat](https://vrchat.com/home/user/usr_c65de0b0-7088-4185-80ac-3ca00c47a7e7)
-- [Steam](https://steamcommunity.com/id/nonnanorthmarine/)
-- [YouTube](https://www.youtube.com/@nonnanorthmarine)
+- [Steam](https://steamcommunity.com/id/negxkuniklo/)
+- [YouTube](https://www.youtube.com/@negxkuniklo)
 
 ### グループ
 
