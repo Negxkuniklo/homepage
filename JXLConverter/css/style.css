@@ -202,17 +202,9 @@ body {
 }
 
 .settings-grid {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 24px;
-  align-items: center;
-}
-
-@media (max-width: 640px) {
-  .settings-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .slider-group {

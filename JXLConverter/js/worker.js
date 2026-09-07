@@ -19,7 +19,7 @@ self.onmessage = async function(e) {
     const fileName = data.fileName || 'image';
     const isLossless = data.isLossless === true || data.quality >= 100;
     const quality = isLossless ? 100 : (data.quality !== undefined ? data.quality : 85);
-    const updateExif = data.updateExif !== false;
+    const updateExif = true;
 
     // Send initial progress
     self.postMessage({

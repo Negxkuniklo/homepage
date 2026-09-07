@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const losslessInfoGroup = document.getElementById('lossless-info-group');
   const qualitySlider = document.getElementById('quality-slider');
   const qualityValue = document.getElementById('quality-value');
-  const updateExifCheckbox = document.getElementById('update-exif-checkbox');
   const queueSection = document.getElementById('queue-section');
   const queueList = document.getElementById('queue-list');
   const downloadAllBtn = document.getElementById('download-all-btn');
@@ -114,11 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     qualitySlider.value = savedQuality;
   }
 
-  const savedExif = localStorage.getItem('jxl_update_exif');
-  if (savedExif !== null && updateExifCheckbox) {
-    updateExifCheckbox.checked = savedExif === 'true';
-  }
-
   function setMode(mode) {
     currentMode = mode;
     localStorage.setItem('jxl_mode', mode);
@@ -147,12 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   qualitySlider.addEventListener('input', updateSliderDisplay);
   updateSliderDisplay();
-
-  if (updateExifCheckbox) {
-    updateExifCheckbox.addEventListener('change', () => {
-      localStorage.setItem('jxl_update_exif', updateExifCheckbox.checked);
-    });
-  }
 
   // 4. Drag & Drop & File Selection
   dropZone.addEventListener('click', () => fileInput.click());
@@ -335,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isLossless = (currentMode === 'lossless');
     const quality = isLossless ? 100 : parseInt(qualitySlider.value, 10);
-    const updateExif = updateExifCheckbox ? updateExifCheckbox.checked : true;
+    const updateExif = true;
 
     // Send task to worker
     worker.postMessage({
