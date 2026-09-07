@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="JPEG、透過PNG、アニメーションGIF、透過WebPをブラウザローカルで高品質JPEG XL(.jxl)に高速変換するPWAアプリ">
+  <meta name="theme-color" content="#0f172a">
+  <title>JPEG XL (JXL) Converter PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- JSZip library for bulk downloads -->
+  <script src="lib/jszip.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="app-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <h1 class="app-title">JXL Converter PWA</h1>
+      </div>
+      <div class="header-badges">
+        <span id="offline-status-badge" class="status-badge online">🟢 オンライン</span>
+      </div>
+    </header>
+
+    <!-- PWA Install Banner -->
+    <div id="install-banner" class="install-banner hidden">
+      <div class="banner-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>アプリとしてインストールして、いつでもオフラインで高速変換できます</span>
+      </div>
+      <div class="banner-actions">
+        <button id="install-btn" class="btn btn-primary btn-sm">インストール</button>
+        <button id="close-install-banner" class="btn btn-close" aria-label="閉じる">✕</button>
+      </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <section class="panel settings-panel">
+      <div class="settings-grid">
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="quality-slider" class="slider-label">圧縮品質 (Quality)</label>
+            <div class="slider-value-container">
+              <span id="lossless-badge" class="badge badge-lossless hidden">ロスレス (可逆)</span>
+              <span id="quality-value" class="slider-value">85%</span>
+            </div>
+          </div>
+          <input type="range" id="quality-slider" class="range-slider" min="1" max="100" value="85">
+        </div>
+        <div class="options-group">
+          <label class="checkbox-group">
+            <input type="checkbox" id="update-exif-checkbox" checked>
+            <span>Exif日時・バージョンを更新して保持</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Drop Zone -->
+    <section class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" multiple accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.jxl,.avif,.bmp" class="hidden">
+      <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      <div class="drop-title">画像をドラッグ＆ドロップ、またはクリックして選択</div>
+      <div class="drop-desc">JPEG, 透過PNG, 動的GIF, 透過動的WebP に完全対応 (複数ファイル一括OK)</div>
+      <div class="supported-formats">
+        <span class="format-tag">JPEG</span>
+        <span class="format-tag">透過PNG</span>
+        <span class="format-tag">動画GIF</span>
+        <span class="format-tag">透過動画WebP</span>
+        <span class="format-tag">JXL再圧縮</span>
+      </div>
+    </section>
+
+    <!-- Global Progress Bar -->
+    <div id="global-progress" class="global-progress hidden">
+      <div class="global-progress-bar-container">
+        <div id="global-progress-bar" class="global-progress-bar" style="width: 0%"></div>
+      </div>
+      <div id="global-progress-text" class="global-progress-text">変換進捗: 0 / 0 件</div>
+    </div>
+
+    <!-- Queue Section -->
+    <section id="queue-section" class="queue-section hidden">
+      <div class="queue-header">
+        <h2 class="queue-title">変換リスト</h2>
+        <div class="queue-actions">
+          <button id="download-all-btn" class="btn btn-primary btn-sm" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            一括ZIP保存
+          </button>
+          <button id="clear-all-btn" class="btn btn-secondary btn-sm">クリア</button>
+        </div>
+      </div>
+      <ul id="queue-list" class="queue-list"></ul>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>100% Client-side WebAssembly & WebCodecs • 画像は外部サーバーに送信されず安全にローカル処理されます</p>
+    </footer>
+  </div>
+
+  <!-- App script -->
+  <script src="js/app.js"></script>
+</body>
+</html>
