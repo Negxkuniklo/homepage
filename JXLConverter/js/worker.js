@@ -4,6 +4,20 @@
  */
 /* global importScripts, ExifHandler, FrameExtractor, JXLEncoder */
 
+// Configure Emscripten locateFile before importing jxl_enc.js
+self.Module = {
+  locateFile: function(path) {
+    if (path.endsWith('.wasm')) {
+      try {
+        return new URL('../lib/jxl_enc.wasm', self.location.href).href;
+      } catch(e) {
+        return 'jxl_enc.wasm';
+      }
+    }
+    return path;
+  }
+};
+
 try {
   importScripts('../lib/jxl_enc.js', 'exif_handler.js', 'frame_extractor.js', 'jxl_encoder.js');
 } catch (e) {

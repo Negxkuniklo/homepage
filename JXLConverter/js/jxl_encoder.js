@@ -46,7 +46,8 @@
 
         if (typeof factory === 'function') {
           const mod = await factory({
-            wasmBinary: wasmArrayBuffer
+            wasmBinary: wasmArrayBuffer,
+            locateFile: (p) => wasmUrl
           });
           wasmModuleInstance = mod;
           return wasmModuleInstance;
@@ -68,7 +69,14 @@
     const isLossless = quality >= 100 || options.lossless === true;
     const width = imageData.width;
     const height = imageData.height;
-    const rgba = imageData.data; // RGBA Uint8ClampedArray
+    
+    // Ensure rgba is Uint8Array or Uint8ClampedArray
+    let rgba = imageData.data;
+    if (rgba instanceof ArrayBuffer) {
+      rgba = new Uint8Array(rgba);
+    } else if (rgba && rgba.buffer && !(rgba instanceof Uint8Array || rgba instanceof Uint8ClampedArray)) {
+      rgba = new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength);
+    }
 
     const module = await getWasmModule(wasmBasePath);
 
@@ -86,8 +94,8 @@
     }
 
     const encodeOptions = {
-      quality: quality,
-      target_distance: distance,
+      quality: isLossless ? 100 : quality,
+      target_distance: isLossless ? 0.0 : distance,
       effort: effort,
       epf: options.epf !== undefined ? options.epf : -1,
       epf_iters: options.epf_iters !== undefined ? options.epf_iters : 0,
@@ -95,8 +103,8 @@
       progressive: options.progressive !== undefined ? Boolean(options.progressive) : false,
       progressive_dc: options.progressive_dc !== undefined ? options.progressive_dc : 0,
       progressive_split: options.progressive_split !== undefined ? options.progressive_split : 0,
-      lossyPalette: options.lossyPalette !== undefined ? Boolean(options.lossyPalette) : false,
-      lossyModular: isLossless ? true : Boolean(options.lossyModular),
+      lossyPalette: false,
+      lossyModular: false,
       decodingSpeedTier: options.decodingSpeedTier !== undefined ? options.decodingSpeedTier : 0,
       photonNoiseIso: options.photonNoiseIso !== undefined ? options.photonNoiseIso : 0,
       num_distance_bands: options.num_distance_bands !== undefined ? options.num_distance_bands : 0,
