@@ -207,10 +207,20 @@
    * Calculates scaled dimensions maintaining aspect ratio if maxDimension is set
    */
   function calculateTargetDimensions(width, height, maxDimension) {
-    if (!maxDimension || maxDimension <= 0) return { width, height };
+    let maxDim = maxDimension;
+    if (typeof maxDim === 'string') {
+      if (maxDim === 'auto' || maxDim === '') {
+        const isMobile = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')) ||
+                         (typeof window !== 'undefined' && window.innerWidth <= 1024 && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+        maxDim = isMobile ? 2560 : 4096;
+      } else {
+        maxDim = parseInt(maxDim, 10);
+      }
+    }
+    if (!maxDim || maxDim <= 0 || isNaN(maxDim)) return { width, height };
     const maxEdge = Math.max(width, height);
-    if (maxEdge <= maxDimension) return { width, height };
-    const scale = maxDimension / maxEdge;
+    if (maxEdge <= maxDim) return { width, height };
+    const scale = maxDim / maxEdge;
     return {
       width: Math.max(1, Math.round(width * scale)),
       height: Math.max(1, Math.round(height * scale))
@@ -224,8 +234,14 @@
    */
   async function extractFrames(blob, onProgress, options) {
     options = options || {};
-    // Default safe maxDimension: 4096 (can be 0 for unlimited)
-    const maxDimension = options.maxDimension !== undefined ? options.maxDimension : 4096;
+    let maxDimension = options.maxDimension !== undefined ? options.maxDimension : 'auto';
+    if (maxDimension === 'auto') {
+      const isMobile = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')) ||
+                       (typeof window !== 'undefined' && window.innerWidth <= 1024 && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+      maxDimension = isMobile ? 2560 : 4096;
+    } else if (typeof maxDimension === 'string') {
+      maxDimension = parseInt(maxDimension, 10);
+    }
 
     let mimeType = blob.type || '';
     const arrayBuffer = await blob.arrayBuffer();

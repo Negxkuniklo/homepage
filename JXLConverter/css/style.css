@@ -580,6 +580,15 @@ body {
   border-radius: 12px;
 }
 
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

@@ -145,6 +145,17 @@
         const type = view.getUint16(entryOffset + 2, le);
         const count = view.getUint32(entryOffset + 4, le);
 
+        // Tag 0x0112 = Orientation (reset to 1 / Top-left since canvas/bitmap decodes upright)
+        if (tag === 0x0112 && type === 3 && count === 1) { // SHORT
+          if (le) {
+            buffer[entryOffset + 8] = 0x01;
+            buffer[entryOffset + 9] = 0x00;
+          } else {
+            buffer[entryOffset + 8] = 0x00;
+            buffer[entryOffset + 9] = 0x01;
+          }
+        }
+
         // Tag 0x0132 = DateTime (Modify date)
         if (tag === 0x0132 && type === 2 && count >= 19) {
           const valOffset = view.getUint32(entryOffset + 8, le);

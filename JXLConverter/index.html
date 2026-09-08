@@ -90,13 +90,14 @@
         <div class="setting-row-group">
           <div class="setting-header">
             <label for="resolution-select" class="setting-label">最大解像度 (Resolution)</label>
-            <span class="setting-desc">超高画質写真（Pixel 50MPや一眼レフ等）のメモリ上限を保護</span>
+            <span class="setting-desc">超高画質写真（Pixel 50MPや一眼レフ等）のブラウザメモリを自動保護</span>
           </div>
           <select id="resolution-select" class="form-select">
-            <option value="4096" selected>自動 (長辺最大4096px / スマホ安定・4K)</option>
-            <option value="0">オリジナル維持 (制限なし / PC推奨)</option>
-            <option value="2560">2K QHD (長辺最大2560px)</option>
-            <option value="1920">FHD (長辺最大1920px)</option>
+            <option value="auto" selected>✨ 自動適応 (スマホ: 2.5K / PC: 4K 安定動作)</option>
+            <option value="2560">📱 2.5K (長辺2560px / スマホ推奨・高画質)</option>
+            <option value="1920">📱 FHD (長辺1920px / スマホ最速・省メモリ)</option>
+            <option value="4096">💻 4K (長辺4096px / PC推奨)</option>
+            <option value="0">🖥️ オリジナル維持 (制限なし / 高スペックPC向け)</option>
           </select>
         </div>
       </div>

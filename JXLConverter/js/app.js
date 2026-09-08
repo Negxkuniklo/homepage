@@ -34,6 +34,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let taskIdCounter = 0;
   let deferredPrompt = null;
 
+  // Mobile device detection
+  const isMobileDevice = (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '')) ||
+                         (typeof window !== 'undefined' && window.innerWidth <= 1024 && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+
+  function getEffectiveMaxDimension(selectedVal, retryStep = 0) {
+    if (retryStep === 1) return 2560;
+    if (retryStep === 2) return 1920;
+    if (retryStep >= 3) return 1280;
+
+    if (selectedVal === 'auto' || !selectedVal) {
+      return isMobileDevice ? 2560 : 4096;
+    }
+    const val = parseInt(selectedVal, 10);
+    return isNaN(val) ? (isMobileDevice ? 2560 : 4096) : val;
+  }
+
   // 1. Initialize Worker (with self-healing and auto-restart)
   function initWorker() {
     if (worker) {
@@ -54,12 +70,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleWorkerCrash(errorMsg) {
     console.warn("Recovering from Worker crash/error...", errorMsg);
-    initWorker(); // Spawn fresh worker
     const currentTask = taskQueue.find(t => t.status === 'processing');
     if (currentTask) {
-      currentTask.status = 'error';
-      currentTask.errorMessage = errorMsg || 'Worker異常停止（メモリ上限またはWASMエラー）';
-      updateQueueItemUI(currentTask);
+      handleTaskFailure(currentTask, errorMsg || 'Worker異常停止（メモリ上限）');
+    } else {
+      initWorker();
+      isProcessing = false;
+      updateGlobalProgress();
+      processNextInQueue();
+    }
+  }
+
+  function handleTaskFailure(task, errorMsg) {
+    const errStr = String(errorMsg);
+    const isWasmFatal = errStr.includes('unreachable') || errStr.includes('Aborted') || errStr.includes('memory') || errStr.includes('RuntimeError') || errStr.includes('Failed to load') || errStr.includes('null');
+
+    if (isWasmFatal && (task.retryCount || 0) < 3) {
+      task.retryCount = (task.retryCount || 0) + 1;
+      const nextRes = getEffectiveMaxDimension(resolutionSelect ? resolutionSelect.value : 'auto', task.retryCount);
+      console.warn(`[Auto-Recovery] Retrying task ${task.taskId} with safe resolution ${nextRes}px (Attempt ${task.retryCount})...`);
+      task.status = 'pending';
+      task.statusMessage = `端末メモリ保護のため ${nextRes}px で自動再試行中...`;
+      task.percent = 10;
+      updateQueueItemUI(task);
+      initWorker(); // Restart with clean WASM state
+      isProcessing = false;
+      setTimeout(processNextInQueue, 150);
+      return;
+    }
+
+    // If all retries failed or not fatal
+    task.status = 'error';
+    task.errorMessage = errorMsg;
+    updateQueueItemUI(task);
+    if (isWasmFatal) {
+      initWorker();
     }
     isProcessing = false;
     updateGlobalProgress();
@@ -255,7 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resultBlob: null,
         resultSize: 0,
         mode: currentMode,
-        outFileName: safeName.replace(/\.[^.]+$/, '') + '.jxl'
+        outFileName: safeName.replace(/\.[^.]+$/, '') + '.jxl',
+        retryCount: 0
       };
 
       taskQueue.push(item);
@@ -333,11 +379,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ? ` (${((1 - item.resultSize / item.fileSize) * 100).toFixed(1)}% 削減)`
         : ` (+${((item.resultSize / item.fileSize - 1) * 100).toFixed(1)}%)`;
 
+      const optBadge = (item.retryCount > 0)
+        ? `<span class="badge badge-warning" title="端末メモリに合わせて解像度を自動最適化しました">⚡ 自動適応 (${item.width}x${item.height})</span>`
+        : '';
+
       statusText.innerHTML = `
         <span class="text-success">✅ 完了</span>: <strong>${formatBytes(item.resultSize)}</strong> ${diffText}
         <span class="badge ${item.isLossless ? 'badge-lossless' : 'badge-format'}">${item.isLossless ? '💎 可逆(無劣化)' : '⚡ 非可逆'}</span>
         ${item.isAnimated ? '<span class="badge badge-anim">動的 (Animation)</span>' : ''}
         ${item.hasExif ? '<span class="badge badge-exif">Exif保持</span>' : ''}
+        ${optBadge}
       `;
 
       if (downloadBtn) {
@@ -363,14 +414,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isProcessing = true;
     nextItem.status = 'processing';
-    nextItem.statusMessage = '画像解析・フレーム展開中...';
+    const selectedRes = resolutionSelect ? resolutionSelect.value : 'auto';
+    const maxDimension = getEffectiveMaxDimension(selectedRes, nextItem.retryCount || 0);
+
+    nextItem.statusMessage = (nextItem.retryCount > 0)
+      ? `画像最適化中 (長辺${maxDimension}px)...`
+      : '画像解析・フレーム展開中...';
     nextItem.percent = 15;
     updateQueueItemUI(nextItem);
     updateGlobalProgress();
 
     const isLossless = (currentMode === 'lossless');
     const quality = isLossless ? 100 : parseInt(qualitySlider.value, 10);
-    const maxDimension = resolutionSelect ? parseInt(resolutionSelect.value, 10) : 4096;
 
     try {
       // 1. Read raw ArrayBuffer
@@ -429,12 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       console.error("Queue process error:", err);
-      nextItem.status = 'error';
-      nextItem.errorMessage = err.message || String(err);
-      updateQueueItemUI(nextItem);
-      isProcessing = false;
-      updateGlobalProgress();
-      processNextInQueue();
+      handleTaskFailure(nextItem, err.message || String(err));
     }
   }
 
@@ -457,6 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
       task.isAnimated = data.isAnimated;
       task.hasExif = data.hasExif;
       task.isLossless = data.isLossless;
+      task.width = data.width;
+      task.height = data.height;
       completedTasks.push(task);
 
       updateQueueItemUI(task);
@@ -464,20 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateGlobalProgress();
       processNextInQueue();
     } else if (data.type === 'error') {
-      task.status = 'error';
-      task.errorMessage = data.error;
-      updateQueueItemUI(task);
-
-      // Auto-recover worker if fatal WASM crash/trap occurred
-      const errStr = String(data.error);
-      if (errStr.includes('unreachable') || errStr.includes('Aborted') || errStr.includes('memory') || errStr.includes('RuntimeError')) {
-        console.warn("Fatal error encountered in worker, auto-restarting worker instance...");
-        initWorker();
-      }
-
-      isProcessing = false;
-      updateGlobalProgress();
-      processNextInQueue();
+      handleTaskFailure(task, data.error);
     }
   }
 
