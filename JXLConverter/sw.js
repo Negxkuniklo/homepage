@@ -2,7 +2,7 @@
  * Service Worker for JXL Converter PWA
  * Provides full offline support with Cache-First strategy.
  */
-const CACHE_NAME = 'jxl-converter-v5';
+const CACHE_NAME = 'jxl-converter-v6';
 
 const ASSETS_TO_CACHE = [
   './',

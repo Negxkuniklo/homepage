@@ -91,6 +91,7 @@ self.onmessage = async function(e) {
       });
 
       const blob = data.file || new Blob([rawArrayBuffer]);
+      const maxDim = data.maxDimension !== undefined ? data.maxDimension : 4096;
       extractedData = await FrameExtractor.extractFrames(blob, (p) => {
         self.postMessage({
           type: 'progress',
@@ -98,7 +99,7 @@ self.onmessage = async function(e) {
           percent: 20 + Math.round(p * 0.3),
           status: 'フレームデコード中...'
         });
-      });
+      }, { maxDimension: maxDim });
     }
 
     if (!extractedData || !extractedData.frames || extractedData.frames.length === 0) {

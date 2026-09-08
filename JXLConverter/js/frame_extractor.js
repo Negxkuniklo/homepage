@@ -204,11 +204,29 @@
   }
 
   /**
+   * Calculates scaled dimensions maintaining aspect ratio if maxDimension is set
+   */
+  function calculateTargetDimensions(width, height, maxDimension) {
+    if (!maxDimension || maxDimension <= 0) return { width, height };
+    const maxEdge = Math.max(width, height);
+    if (maxEdge <= maxDimension) return { width, height };
+    const scale = maxDimension / maxEdge;
+    return {
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale))
+    };
+  }
+
+  /**
    * Main extractor function
    * Supports animated GIF, animated/still WebP, PNG, JPEG
    * Returns: { width, height, isAnimated, frames: [{ imageData, delayMs }] }
    */
-  async function extractFrames(blob, onProgress) {
+  async function extractFrames(blob, onProgress, options) {
+    options = options || {};
+    // Default safe maxDimension: 4096 (can be 0 for unlimited)
+    const maxDimension = options.maxDimension !== undefined ? options.maxDimension : 4096;
+
     let mimeType = blob.type || '';
     const arrayBuffer = await blob.arrayBuffer();
 
@@ -239,8 +257,8 @@
         const isAnimated = track ? track.animated : false;
 
         const frames = [];
-        let width = 0;
-        let height = 0;
+        let targetW = 0;
+        let targetH = 0;
         let canvas = null;
         let ctx = null;
 
@@ -249,20 +267,28 @@
           const videoFrame = decodeResult.image;
 
           if (i === 0) {
-            width = videoFrame.displayWidth || videoFrame.codedWidth || videoFrame.width;
-            height = videoFrame.displayHeight || videoFrame.codedHeight || videoFrame.height;
+            const rawW = videoFrame.displayWidth || videoFrame.codedWidth || videoFrame.width;
+            const rawH = videoFrame.displayHeight || videoFrame.codedHeight || videoFrame.height;
+            const targetDim = calculateTargetDimensions(rawW, rawH, maxDimension);
+            targetW = targetDim.width;
+            targetH = targetDim.height;
+
             canvas = (typeof OffscreenCanvas !== 'undefined')
-              ? new OffscreenCanvas(width, height)
+              ? new OffscreenCanvas(targetW, targetH)
               : (typeof document !== 'undefined' ? document.createElement('canvas') : null);
             if (!canvas) throw new Error("Canvas not supported");
-            canvas.width = width;
-            canvas.height = height;
+            canvas.width = targetW;
+            canvas.height = targetH;
             ctx = canvas.getContext('2d', { willReadFrequently: true });
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+            }
           }
 
-          ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(videoFrame, 0, 0, width, height);
-          const imgData = ctx.getImageData(0, 0, width, height);
+          ctx.clearRect(0, 0, targetW, targetH);
+          ctx.drawImage(videoFrame, 0, 0, targetW, targetH);
+          const imgData = ctx.getImageData(0, 0, targetW, targetH);
 
           let delayMs = 100;
           if (videoFrame.duration !== undefined && videoFrame.duration > 0) {
@@ -287,8 +313,8 @@
 
         if (frames.length > 0) {
           return {
-            width: width,
-            height: height,
+            width: targetW,
+            height: targetH,
             isAnimated: isAnimated || frames.length > 1,
             frames: frames
           };
@@ -321,27 +347,35 @@
           }
         }
 
-        const width = bitmap.width;
-        const height = bitmap.height;
+        const rawW = bitmap.width;
+        const rawH = bitmap.height;
+        const targetDim = calculateTargetDimensions(rawW, rawH, maxDimension);
+        const targetW = targetDim.width;
+        const targetH = targetDim.height;
+
         const canvas = (typeof OffscreenCanvas !== 'undefined')
-          ? new OffscreenCanvas(width, height)
+          ? new OffscreenCanvas(targetW, targetH)
           : (typeof document !== 'undefined' ? document.createElement('canvas') : null);
         
         if (!canvas) throw new Error("Canvas is unavailable");
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(bitmap, 0, 0);
-        const imageData = ctx.getImageData(0, 0, width, height);
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+        }
+        ctx.clearRect(0, 0, targetW, targetH);
+        ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+        const imageData = ctx.getImageData(0, 0, targetW, targetH);
 
         if (typeof bitmap.close === 'function') {
           bitmap.close();
         }
 
         return {
-          width: width,
-          height: height,
+          width: targetW,
+          height: targetH,
           isAnimated: false,
           frames: [{
             imageData: imageData,
@@ -364,19 +398,27 @@
           img.src = url;
         });
 
-        const width = img.naturalWidth || img.width;
-        const height = img.naturalHeight || img.height;
+        const rawW = img.naturalWidth || img.width;
+        const rawH = img.naturalHeight || img.height;
+        const targetDim = calculateTargetDimensions(rawW, rawH, maxDimension);
+        const targetW = targetDim.width;
+        const targetH = targetDim.height;
+
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0);
-        const imageData = ctx.getImageData(0, 0, width, height);
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+        }
+        ctx.clearRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const imageData = ctx.getImageData(0, 0, targetW, targetH);
 
         return {
-          width: width,
-          height: height,
+          width: targetW,
+          height: targetH,
           isAnimated: false,
           frames: [{
             imageData: imageData,

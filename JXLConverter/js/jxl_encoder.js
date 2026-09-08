@@ -65,7 +65,7 @@
   async function encodeSingleFrame(imageData, options, wasmBasePath = '') {
     options = options || {};
     const quality = options.quality !== undefined ? options.quality : 85;
-    const effort = options.effort !== undefined ? options.effort : 7;
+    const effort = options.effort !== undefined ? options.effort : 5;
     const isLossless = quality >= 100 || options.lossless === true;
     const width = imageData.width;
     const height = imageData.height;
@@ -111,7 +111,15 @@
       lossless: isLossless
     };
 
-    const result = module.encode(rgba, width, height, encodeOptions);
+    let result;
+    try {
+      result = module.encode(rgba, width, height, encodeOptions);
+    } catch (encodeErr) {
+      // Invalidate instance so it doesn't leave poisoned state
+      wasmModuleInstance = null;
+      wasmModulePromise = null;
+      throw new Error(`WASM JXLエンコードエラー: ${encodeErr.message || encodeErr}`);
+    }
 
     if (result instanceof Uint8Array) {
       return result;

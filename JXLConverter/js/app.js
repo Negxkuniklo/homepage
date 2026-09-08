@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeLosslessBtn = document.getElementById('mode-lossless');
   const qualitySliderGroup = document.getElementById('quality-slider-group');
   const losslessInfoGroup = document.getElementById('lossless-info-group');
+  const resolutionSelect = document.getElementById('resolution-select');
   const qualitySlider = document.getElementById('quality-slider');
   const qualityValue = document.getElementById('quality-value');
   const queueSection = document.getElementById('queue-section');
@@ -33,18 +34,38 @@ document.addEventListener('DOMContentLoaded', () => {
   let taskIdCounter = 0;
   let deferredPrompt = null;
 
-  // 1. Initialize Worker
+  // 1. Initialize Worker (with self-healing and auto-restart)
   function initWorker() {
+    if (worker) {
+      try { worker.terminate(); } catch (e) {}
+      worker = null;
+    }
     if (window.Worker) {
       worker = new Worker('js/worker.js');
       worker.onmessage = handleWorkerMessage;
       worker.onerror = (err) => {
         console.error("Worker error:", err);
+        handleWorkerCrash(err.message || "Worker crashed");
       };
     } else {
       alert("お使いのブラウザは Web Worker をサポートしていません。最新のブラウザをご使用ください。");
     }
   }
+
+  function handleWorkerCrash(errorMsg) {
+    console.warn("Recovering from Worker crash/error...", errorMsg);
+    initWorker(); // Spawn fresh worker
+    const currentTask = taskQueue.find(t => t.status === 'processing');
+    if (currentTask) {
+      currentTask.status = 'error';
+      currentTask.errorMessage = errorMsg || 'Worker異常停止（メモリ上限またはWASMエラー）';
+      updateQueueItemUI(currentTask);
+    }
+    isProcessing = false;
+    updateGlobalProgress();
+    processNextInQueue();
+  }
+
   initWorker();
 
   // 2. Service Worker & PWA Registration
@@ -112,6 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedQuality = localStorage.getItem('jxl_quality');
   if (savedQuality !== null) {
     qualitySlider.value = savedQuality;
+  }
+
+  const savedRes = localStorage.getItem('jxl_max_res');
+  if (savedRes !== null && resolutionSelect) {
+    resolutionSelect.value = savedRes;
+  }
+  if (resolutionSelect) {
+    resolutionSelect.addEventListener('change', () => {
+      localStorage.setItem('jxl_max_res', resolutionSelect.value);
+    });
   }
 
   function setMode(mode) {
@@ -339,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isLossless = (currentMode === 'lossless');
     const quality = isLossless ? 100 : parseInt(qualitySlider.value, 10);
+    const maxDimension = resolutionSelect ? parseInt(resolutionSelect.value, 10) : 4096;
 
     try {
       // 1. Read raw ArrayBuffer
@@ -353,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const decoded = await FrameExtractor.extractFrames(nextItem.file, (p) => {
             nextItem.percent = 15 + Math.round(p * 0.2);
             updateQueueItemUI(nextItem);
-          });
+          }, { maxDimension: maxDimension });
 
           if (decoded && decoded.frames && decoded.frames.length > 0) {
             extractedData = {
@@ -391,7 +423,8 @@ document.addEventListener('DOMContentLoaded', () => {
         rawArrayBuffer: rawArrayBuffer,
         extractedData: extractedData,
         isLossless: isLossless,
-        quality: quality
+        quality: quality,
+        maxDimension: maxDimension
       }, transferables);
 
     } catch (err) {
@@ -434,6 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
       task.status = 'error';
       task.errorMessage = data.error;
       updateQueueItemUI(task);
+
+      // Auto-recover worker if fatal WASM crash/trap occurred
+      const errStr = String(data.error);
+      if (errStr.includes('unreachable') || errStr.includes('Aborted') || errStr.includes('memory') || errStr.includes('RuntimeError')) {
+        console.warn("Fatal error encountered in worker, auto-restarting worker instance...");
+        initWorker();
+      }
+
       isProcessing = false;
       updateGlobalProgress();
       processNextInQueue();
