@@ -2,7 +2,7 @@
  * Service Worker for JXL Converter PWA
  * Provides full offline support with Cache-First strategy.
  */
-const CACHE_NAME = 'jxl-converter-v3';
+const CACHE_NAME = 'jxl-converter-v4';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -49,13 +49,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = event.request.url;
+  // Ignore non-http requests (e.g. blob:, data:, chrome-extension:)
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
         const responseToCache = networkResponse.clone();

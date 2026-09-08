@@ -1,6 +1,6 @@
 /**
  * FrameExtractor - Robust frame & metadata extractor for JPEG, PNG, GIF, WebP
- * Uses modern WebCodecs ImageDecoder with fallback decoders.
+ * Works seamlessly across Desktop, Mobile (Android/iOS), Chrome, Firefox, Safari.
  */
 (function(global) {
   'use strict';
@@ -114,7 +114,9 @@
 
     const canvas = (typeof OffscreenCanvas !== 'undefined')
       ? new OffscreenCanvas(width, height)
-      : document.createElement('canvas');
+      : (typeof document !== 'undefined' ? document.createElement('canvas') : null);
+    
+    if (!canvas) throw new Error("Canvas is not supported in this environment");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -210,24 +212,24 @@
     let mimeType = blob.type || '';
     const arrayBuffer = await blob.arrayBuffer();
 
-    if (!mimeType) {
-      const u8 = new Uint8Array(arrayBuffer, 0, 12);
+    // Detect format by magic bytes if mimeType is missing or generic
+    const u8 = new Uint8Array(arrayBuffer, 0, 12);
+    if (!mimeType || mimeType === 'application/octet-stream') {
       if (u8[0] === 0xFF && u8[1] === 0xD8) mimeType = 'image/jpeg';
       else if (u8[0] === 0x89 && u8[1] === 0x50) mimeType = 'image/png';
       else if (u8[0] === 0x47 && u8[1] === 0x49) mimeType = 'image/gif';
       else if (u8[0] === 0x52 && u8[8] === 0x57) mimeType = 'image/webp';
     }
 
-    const isGif = (mimeType === 'image/gif');
-    const isWebp = (mimeType === 'image/webp');
+    const isGif = (mimeType === 'image/gif') || (u8[0] === 0x47 && u8[1] === 0x49);
+    const isWebp = (mimeType === 'image/webp') || (u8[0] === 0x52 && u8[8] === 0x57);
 
     // Strategy 1: Modern WebCodecs ImageDecoder for Animated formats (GIF, WebP)
     if (typeof ImageDecoder !== 'undefined' && (isGif || isWebp)) {
       try {
-        const stream = (typeof blob.stream === 'function') ? blob.stream() : new Response(blob).body;
         const decoder = new ImageDecoder({
-          data: stream,
-          type: mimeType,
+          data: new Uint8Array(arrayBuffer),
+          type: mimeType || (isGif ? 'image/gif' : 'image/webp'),
           premultiplyAlpha: 'none'
         });
 
@@ -251,7 +253,8 @@
             height = videoFrame.displayHeight || videoFrame.codedHeight || videoFrame.height;
             canvas = (typeof OffscreenCanvas !== 'undefined')
               ? new OffscreenCanvas(width, height)
-              : document.createElement('canvas');
+              : (typeof document !== 'undefined' ? document.createElement('canvas') : null);
+            if (!canvas) throw new Error("Canvas not supported");
             canvas.width = width;
             canvas.height = height;
             ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -304,39 +307,88 @@
       }
     }
 
-    // Strategy 3: Standard createImageBitmap for Still images (JPEG, PNG, Still WebP, AVIF, BMP)
-    let bitmap;
-    try {
-      bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none' });
-    } catch (e) {
-      bitmap = await createImageBitmap(blob);
+    // Strategy 3: Standard createImageBitmap for Still images (JPEG, PNG, WebP, etc.)
+    if (typeof createImageBitmap === 'function') {
+      try {
+        let bitmap;
+        try {
+          bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image', premultiplyAlpha: 'none' });
+        } catch (e1) {
+          try {
+            bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none' });
+          } catch (e2) {
+            bitmap = await createImageBitmap(blob);
+          }
+        }
+
+        const width = bitmap.width;
+        const height = bitmap.height;
+        const canvas = (typeof OffscreenCanvas !== 'undefined')
+          ? new OffscreenCanvas(width, height)
+          : (typeof document !== 'undefined' ? document.createElement('canvas') : null);
+        
+        if (!canvas) throw new Error("Canvas is unavailable");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(bitmap, 0, 0);
+        const imageData = ctx.getImageData(0, 0, width, height);
+
+        if (typeof bitmap.close === 'function') {
+          bitmap.close();
+        }
+
+        return {
+          width: width,
+          height: height,
+          isAnimated: false,
+          frames: [{
+            imageData: imageData,
+            delayMs: 100
+          }]
+        };
+      } catch (bitmapErr) {
+        console.warn("createImageBitmap failed, trying Image element fallback:", bitmapErr);
+      }
     }
 
-    const width = bitmap.width;
-    const height = bitmap.height;
-    const canvas = (typeof OffscreenCanvas !== 'undefined')
-      ? new OffscreenCanvas(width, height)
-      : document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(bitmap, 0, 0);
-    const imageData = ctx.getImageData(0, 0, width, height);
+    // Strategy 4: HTML Image element fallback (if document is available)
+    if (typeof document !== 'undefined') {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      try {
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = (e) => reject(new Error("Image element failed to load blob"));
+          img.src = url;
+        });
 
-    if (typeof bitmap.close === 'function') {
-      bitmap.close();
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, width, height);
+
+        return {
+          width: width,
+          height: height,
+          isAnimated: false,
+          frames: [{
+            imageData: imageData,
+            delayMs: 100
+          }]
+        };
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }
 
-    return {
-      width: width,
-      height: height,
-      isAnimated: false,
-      frames: [{
-        imageData: imageData,
-        delayMs: 100
-      }]
-    };
+    throw new Error("画像のデコードに失敗しました。対応していない画像形式か、ブラウザの制限です。");
   }
 
   const FrameExtractor = {

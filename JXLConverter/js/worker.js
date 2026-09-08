@@ -1,6 +1,6 @@
 /**
  * JXL Converter Web Worker
- * Performs background extraction, Exif handling, and libjxl WASM encoding without freezing UI.
+ * Performs background WASM JXL encoding using pre-decoded or worker-decoded image data.
  */
 /* global importScripts, ExifHandler, FrameExtractor, JXLEncoder */
 
@@ -15,64 +15,86 @@ self.onmessage = async function(e) {
   const taskId = data.taskId;
 
   try {
-    const file = data.file; // Blob / File or ArrayBuffer
     const fileName = data.fileName || 'image';
     const isLossless = data.isLossless === true || data.quality >= 100;
     const quality = isLossless ? 100 : (data.quality !== undefined ? data.quality : 85);
     const updateExif = true;
 
-    // Send initial progress
     self.postMessage({
       type: 'progress',
       taskId: taskId,
-      percent: 5,
-      status: 'ファイル解析中...'
+      percent: 10,
+      status: 'Exif解析中...'
     });
 
-    const arrayBuffer = (file instanceof ArrayBuffer)
-      ? file
-      : await file.arrayBuffer();
-
-    // 1. Extract and update Exif metadata
+    // 1. Exif metadata handling
     let exifBox = null;
     let hasExif = false;
-    try {
-      const rawExif = ExifHandler.extractExifBuffer(arrayBuffer);
-      if (rawExif && rawExif.length > 0) {
-        hasExif = true;
-        const updatedExif = updateExif ? ExifHandler.updateExifMetadata(rawExif) : rawExif;
-        exifBox = ExifHandler.buildJxlExifBox(updatedExif);
-      } else if (updateExif) {
-        // Create default Exif with current date & ExifVersion 2.32
-        const defExif = ExifHandler.createDefaultExifBuffer();
-        exifBox = ExifHandler.buildJxlExifBox(defExif);
+    const rawArrayBuffer = data.rawArrayBuffer || (data.file ? await data.file.arrayBuffer() : null);
+
+    if (rawArrayBuffer) {
+      try {
+        const rawExif = ExifHandler.extractExifBuffer(rawArrayBuffer);
+        if (rawExif && rawExif.length > 0) {
+          hasExif = true;
+          const updatedExif = ExifHandler.updateExifMetadata(rawExif);
+          exifBox = ExifHandler.buildJxlExifBox(updatedExif);
+        } else {
+          // Default Exif with current date & version
+          const defExif = ExifHandler.createDefaultExifBuffer();
+          exifBox = ExifHandler.buildJxlExifBox(defExif);
+        }
+      } catch (exifErr) {
+        console.warn("Exif processing warning:", exifErr);
       }
-    } catch (exifErr) {
-      console.warn("Exif processing warning:", exifErr);
     }
 
-    self.postMessage({
-      type: 'progress',
-      taskId: taskId,
-      percent: 20,
-      status: 'フレーム展開・画像デコード中...'
-    });
+    // 2. Obtain extracted frames (either passed from main thread or decoded here)
+    let extractedData = null;
 
-    // 2. Extract frames (handles GIF, animated WebP, transparent PNG, JPEG)
-    const blob = (file instanceof Blob) ? file : new Blob([arrayBuffer]);
-    const extractedData = await FrameExtractor.extractFrames(blob, (p) => {
+    if (data.extractedData && data.extractedData.frames && data.extractedData.frames.length > 0) {
+      // Received pre-decoded frames from main thread
+      extractedData = {
+        width: data.extractedData.width,
+        height: data.extractedData.height,
+        isAnimated: data.extractedData.isAnimated,
+        frames: data.extractedData.frames.map(f => ({
+          imageData: {
+            width: f.width,
+            height: f.height,
+            data: new Uint8ClampedArray(f.rgbaBuffer)
+          },
+          delayMs: f.delayMs || 100
+        }))
+      };
+    } else {
+      // Decode in worker
       self.postMessage({
         type: 'progress',
         taskId: taskId,
-        percent: 20 + Math.round(p * 0.3), // 20% -> 35%
-        status: `フレームデコード中 (${extractedData && extractedData.frames ? extractedData.frames.length : 1} フレーム)...`
+        percent: 25,
+        status: '画像フレーム展開中...'
       });
-    });
 
-    const isAnimated = extractedData.isAnimated || (extractedData.frames && extractedData.frames.length > 1);
-    const frameCount = extractedData.frames ? extractedData.frames.length : 1;
+      const blob = data.file || new Blob([rawArrayBuffer]);
+      extractedData = await FrameExtractor.extractFrames(blob, (p) => {
+        self.postMessage({
+          type: 'progress',
+          taskId: taskId,
+          percent: 20 + Math.round(p * 0.3),
+          status: 'フレームデコード中...'
+        });
+      });
+    }
 
-    const modeText = isLossless ? '可逆(Lossless)' : `非可逆(品質 ${quality}%)`;
+    if (!extractedData || !extractedData.frames || extractedData.frames.length === 0) {
+      throw new Error("画像データの展開に失敗しました。");
+    }
+
+    const isAnimated = extractedData.isAnimated || extractedData.frames.length > 1;
+    const frameCount = extractedData.frames.length;
+    const modeText = isLossless ? '可逆(Lossless)' : `非可逆(${quality}%)`;
+
     self.postMessage({
       type: 'progress',
       taskId: taskId,
@@ -80,7 +102,7 @@ self.onmessage = async function(e) {
       status: `JXLエンコード中 [${modeText}, ${frameCount}フレーム]...`
     });
 
-    // 3. Encode to JXL
+    // 3. Encode to JXL via WASM
     const jxlBytes = await JXLEncoder.encode(extractedData, {
       quality: quality,
       lossless: isLossless,
@@ -109,6 +131,7 @@ self.onmessage = async function(e) {
       baseName = fileName.substring(0, lastDot);
     }
     const outFileName = `${baseName}.jxl`;
+    const originalSize = rawArrayBuffer ? rawArrayBuffer.byteLength : (data.fileSize || 0);
 
     // Transfer result back to main thread
     self.postMessage({
@@ -116,7 +139,7 @@ self.onmessage = async function(e) {
       taskId: taskId,
       fileName: outFileName,
       originalName: fileName,
-      originalSize: arrayBuffer.byteLength,
+      originalSize: originalSize,
       jxlSize: jxlBytes.byteLength,
       isAnimated: isAnimated,
       frameCount: frameCount,

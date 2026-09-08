@@ -1,5 +1,6 @@
 /**
  * JXL Converter Web App - Main Application Logic
+ * Cross-platform compatible (PC, Android Chrome/Firefox, iOS Safari)
  */
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
@@ -183,13 +184,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function addFilesToQueue(files) {
+    // Robust file validation (compatible with mobile photo pickers)
     const validFiles = files.filter(file => {
-      const name = file.name.toLowerCase();
-      return file.type.startsWith('image/') ||
+      const name = (file.name || '').toLowerCase();
+      const type = (file.type || '').toLowerCase();
+      // Allow any image MIME type, or common image extensions, or files with non-zero size if type is generic
+      return type.startsWith('image/') ||
         name.endsWith('.jpg') || name.endsWith('.jpeg') ||
         name.endsWith('.png') || name.endsWith('.gif') ||
         name.endsWith('.webp') || name.endsWith('.jxl') ||
-        name.endsWith('.avif') || name.endsWith('.bmp');
+        name.endsWith('.avif') || name.endsWith('.bmp') ||
+        name.endsWith('.heic') || name.endsWith('.heif') ||
+        (!type && file.size > 0);
     });
 
     if (validFiles.length === 0) {
@@ -201,18 +207,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (const file of validFiles) {
       const taskId = `task_${++taskIdCounter}`;
+      let safeName = file.name || `image_${taskIdCounter}.jpg`;
+      // Clean up Android content URI style names if needed
+      if (!safeName.includes('.')) {
+        safeName += '.jpg';
+      }
+
       const item = {
         taskId: taskId,
         file: file,
-        fileName: file.name,
+        fileName: safeName,
         fileSize: file.size,
         type: file.type,
-        status: 'pending', // pending, processing, complete, error
+        status: 'pending',
         percent: 0,
         resultBlob: null,
         resultSize: 0,
         mode: currentMode,
-        outFileName: file.name.replace(/\.[^.]+$/, '') + '.jxl'
+        outFileName: safeName.replace(/\.[^.]+$/, '') + '.jxl'
       };
 
       taskQueue.push(item);
@@ -227,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
     li.id = item.taskId;
     li.className = 'queue-item';
 
-    // Format badge
     let formatBadge = 'IMAGE';
     const ext = item.fileName.split('.').pop().toUpperCase();
     if (['JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'JXL'].includes(ext)) {
@@ -235,11 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Thumbnail preview
-    const previewUrl = URL.createObjectURL(item.file);
+    let previewUrl = '';
+    try {
+      previewUrl = URL.createObjectURL(item.file);
+    } catch (e) {
+      previewUrl = '';
+    }
 
     li.innerHTML = `
       <div class="item-preview">
-        <img src="${previewUrl}" alt="Preview" class="thumbnail" />
+        ${previewUrl ? `<img src="${previewUrl}" alt="Preview" class="thumbnail" />` : `<span class="badge">IMG</span>`}
       </div>
       <div class="item-info">
         <div class="item-header">
@@ -304,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 6. Process Queue
+  // 6. Process Queue with Hybrid Main-Thread Decoding (100% Mobile Compatible)
   async function processNextInQueue() {
     if (isProcessing) return;
 
@@ -316,24 +332,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isProcessing = true;
     nextItem.status = 'processing';
-    nextItem.statusMessage = '変換処理を開始...';
-    nextItem.percent = 10;
+    nextItem.statusMessage = '画像解析・フレーム展開中...';
+    nextItem.percent = 15;
     updateQueueItemUI(nextItem);
     updateGlobalProgress();
 
     const isLossless = (currentMode === 'lossless');
     const quality = isLossless ? 100 : parseInt(qualitySlider.value, 10);
-    const updateExif = true;
 
-    // Send task to worker
-    worker.postMessage({
-      taskId: nextItem.taskId,
-      file: nextItem.file,
-      fileName: nextItem.fileName,
-      isLossless: isLossless,
-      quality: quality,
-      updateExif: updateExif
-    });
+    try {
+      // 1. Read raw ArrayBuffer
+      const rawArrayBuffer = await nextItem.file.arrayBuffer();
+
+      // 2. Safely decode on main thread (guarantees Canvas / Image element support on Android Chrome & Firefox)
+      let extractedData = null;
+      let transferables = [rawArrayBuffer];
+
+      if (typeof FrameExtractor !== 'undefined') {
+        try {
+          const decoded = await FrameExtractor.extractFrames(nextItem.file, (p) => {
+            nextItem.percent = 15 + Math.round(p * 0.2);
+            updateQueueItemUI(nextItem);
+          });
+
+          if (decoded && decoded.frames && decoded.frames.length > 0) {
+            extractedData = {
+              width: decoded.width,
+              height: decoded.height,
+              isAnimated: decoded.isAnimated,
+              frames: []
+            };
+
+            for (const f of decoded.frames) {
+              const buffer = f.imageData.data.buffer;
+              extractedData.frames.push({
+                width: f.imageData.width,
+                height: f.imageData.height,
+                rgbaBuffer: buffer,
+                delayMs: f.delayMs
+              });
+              transferables.push(buffer);
+            }
+          }
+        } catch (decodeErr) {
+          console.warn("Main thread decoding fallback to worker:", decodeErr);
+        }
+      }
+
+      nextItem.statusMessage = 'JXL エンコード準備中...';
+      nextItem.percent = 35;
+      updateQueueItemUI(nextItem);
+
+      // 3. Send to Web Worker for CPU WASM Encoding
+      worker.postMessage({
+        taskId: nextItem.taskId,
+        fileName: nextItem.fileName,
+        fileSize: nextItem.fileSize,
+        rawArrayBuffer: rawArrayBuffer,
+        extractedData: extractedData,
+        isLossless: isLossless,
+        quality: quality
+      }, transferables);
+
+    } catch (err) {
+      console.error("Queue process error:", err);
+      nextItem.status = 'error';
+      nextItem.errorMessage = err.message || String(err);
+      updateQueueItemUI(nextItem);
+      isProcessing = false;
+      updateGlobalProgress();
+      processNextInQueue();
+    }
   }
 
   function handleWorkerMessage(e) {
@@ -395,17 +464,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 7. Downloads
+  // 7. Downloads (Mobile friendly)
   function downloadSingle(item) {
     if (!item.resultBlob) return;
     const url = URL.createObjectURL(item.resultBlob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     a.download = item.outFileName;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 5000);
   }
 
   if (downloadAllBtn) {
@@ -439,14 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
+        a.style.display = 'none';
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
         a.href = url;
         a.download = `jxl_converted_${dateStr}.zip`;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 5000);
       } catch (err) {
         console.error("ZIP creation failed:", err);
         alert("ZIPファイルの作成に失敗しました。個別ダウンロードをお試しください。");
